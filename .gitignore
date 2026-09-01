@@ -6,8 +6,12 @@ node_modules/
 .env.local
 
 # Frontend build output
-frontend/.next/
-frontend/out/
+patient-frontend/.next/
+patient-frontend/out/
+hospital-frontend/.next/
+hospital-frontend/out/
+owner-frontend/.next/
+owner-frontend/out/
 
 # Backend build output
 backend/dist/
