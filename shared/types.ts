@@ -26,3 +26,15 @@ export interface HospitalMembership {
   hospitalName: string;
   role: string;
 }
+
+// Owner Portal only, below this point.
+
+export interface Hospital {
+  id: string;
+  name: string;
+}
+
+export interface CreateHospitalResult {
+  hospital: Hospital;
+  admin: { id: string; name: string; email: string };
+}

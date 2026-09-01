@@ -7,7 +7,8 @@
     "dev": "ts-node-dev --respawn server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed:owner": "ts-node scripts/seedOwner.ts"
+    "seed:owner": "ts-node scripts/seedOwner.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -25,7 +26,10 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.10.5",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.2.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.11"
   }
 }

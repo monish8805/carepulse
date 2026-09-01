@@ -1,4 +1,12 @@
-import type { AuthUser, SessionUser, HospitalContext, HospitalMembership, Role } from "./types";
+import type {
+  AuthUser,
+  SessionUser,
+  HospitalContext,
+  HospitalMembership,
+  Hospital,
+  CreateHospitalResult,
+  Role,
+} from "./types";
 
 // Shared client for the backend auth API. Every frontend passes its own
 // backend base URL (from NEXT_PUBLIC_API_URL) so this file has no per-app config.
@@ -130,4 +138,23 @@ export async function selectHospital(baseUrl: string, hospitalId: string): Promi
   );
   accessToken = data.accessToken;
   return data.hospital;
+}
+
+// Owner Portal only, below this point.
+
+export async function listHospitals(baseUrl: string): Promise<Hospital[]> {
+  const data = await apiFetch<{ hospitals: Hospital[] }>(baseUrl, "/api/owner/hospitals");
+  return data.hospitals;
+}
+
+// The administrator's credentials are never returned here — they're emailed
+// directly, once, by the backend.
+export function createHospital(
+  baseUrl: string,
+  input: { hospitalName: string; adminName: string; adminEmail: string }
+): Promise<CreateHospitalResult> {
+  return apiFetch<CreateHospitalResult>(baseUrl, "/api/owner/hospitals", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }

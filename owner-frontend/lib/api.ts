@@ -32,3 +32,11 @@ export function getMe() {
 export function logout() {
   return sharedApi.logout(BACKEND_URL, ROLE);
 }
+
+export function listHospitals() {
+  return sharedApi.listHospitals(BACKEND_URL);
+}
+
+export function createHospital(input: { hospitalName: string; adminName: string; adminEmail: string }) {
+  return sharedApi.createHospital(BACKEND_URL, input);
+}

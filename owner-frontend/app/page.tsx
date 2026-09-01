@@ -31,6 +31,9 @@ export default function Home() {
           <p>
             Logged in as {user.name} ({user.email})
           </p>
+          <p>
+            <Link href="/hospitals">Hospitals</Link>
+          </p>
           <button onClick={handleLogout}>Log out</button>
         </>
       ) : (
