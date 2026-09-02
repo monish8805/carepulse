@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Activity } from "lucide-react";
 import { login } from "@/lib/api";
-import { Alert, Button, Card, TextField } from "@/components/ui";
+import { Alert, Button, Card, TextField, ThemeToggle } from "@/components/ui";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,11 +28,19 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 dark:bg-slate-950">
+    <main className="relative flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 dark:bg-slate-950">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">CarePulse</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Owner Portal — Log in</p>
+        <div className="mb-6 flex flex-col items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600 text-white">
+            <Activity className="h-5 w-5" aria-hidden="true" strokeWidth={2} />
+          </span>
+          <div className="text-center">
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">CarePulse</h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Owner Portal — Log in</p>
+          </div>
         </div>
 
         <Card>

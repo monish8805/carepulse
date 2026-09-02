@@ -1,5 +1,6 @@
 import { AccessRoleModel } from "../models/accessRole.model";
 import { HospitalMembershipModel } from "../models/hospitalMembership.model";
+import { HospitalModel } from "../models/hospital.model";
 import { PERMISSIONS, Permission } from "../config/permissions";
 import { HttpError } from "../utils/httpError";
 
@@ -16,6 +17,15 @@ export async function assertHospitalAdmin(userId: string, hospitalId: string): P
   });
   if (!membership) {
     throw new HttpError(403, "Only a hospital administrator can manage access roles.");
+  }
+
+  // A disabled hospital blocks this too, even for an existing "active" admin
+  // membership and even mid-session (a stale access token can still carry
+  // this hospitalId) — matches every other hospital-access check's fail-closed
+  // behavior, see models/hospital.model.ts's comment on "isActive".
+  const hospital = await HospitalModel.findById(hospitalId);
+  if (!hospital?.isActive) {
+    throw new HttpError(403, "This hospital is currently disabled.");
   }
 }
 

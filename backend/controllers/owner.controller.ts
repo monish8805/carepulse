@@ -23,3 +23,30 @@ export async function createHospital(req: AuthenticatedRequest, res: Response, n
     next(err);
   }
 }
+
+export async function disableHospital(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const hospital = await hospitalService.disableHospital(req.params.id);
+    res.status(200).json({ message: "Hospital disabled.", hospital });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function enableHospital(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const hospital = await hospitalService.enableHospital(req.params.id);
+    res.status(200).json({ message: "Hospital enabled.", hospital });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteHospital(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    await hospitalService.deleteHospital(req.params.id);
+    res.status(200).json({ message: "Hospital deleted." });
+  } catch (err) {
+    next(err);
+  }
+}

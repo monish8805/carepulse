@@ -102,6 +102,11 @@ export interface AddStaffResult {
 export interface Hospital {
   id: string;
   name: string;
+  // A reversible pause set by the Owner — see backend's hospital.model.ts.
+  // Always true in the staff-facing "browse hospitals to request access to"
+  // listing (disabled ones are excluded there); the Owner's own list shows
+  // both, so this only ever matters to the Owner Portal's UI.
+  isActive: boolean;
 }
 
 export interface CreateHospitalResult {

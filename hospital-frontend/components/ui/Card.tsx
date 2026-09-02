@@ -2,23 +2,31 @@ import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import IconBadge from "./IconBadge";
 
+type CardIconTone = "teal" | "neutral" | "blue" | "amber" | "violet";
+
 interface CardProps {
   title?: string;
   description?: string;
   // Decorative only — shown next to the title when both are present.
   icon?: LucideIcon;
-  children: ReactNode;
+  // Defaults to the accent (teal). Use "neutral" for a deliberately
+  // deprioritized card (e.g. a "System" status card next to a primary one).
+  iconTone?: CardIconTone;
+  // Optional — a header-only card (title/description/icon, no body) is a
+  // legitimate pattern for a non-actionable summary (e.g. a "see this
+  // elsewhere" pointer card).
+  children?: ReactNode;
   className?: string;
 }
 
-export default function Card({ title, description, icon, children, className = "" }: CardProps) {
+export default function Card({ title, description, icon, iconTone, children, className = "" }: CardProps) {
   return (
     <div
       className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 ${className}`}
     >
       {(title || description) && (
         <div className="mb-4 flex items-start gap-3">
-          {icon && <IconBadge icon={icon} />}
+          {icon && <IconBadge icon={icon} tone={iconTone} />}
           <div className="min-w-0">
             {title && (
               <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{title}</h3>

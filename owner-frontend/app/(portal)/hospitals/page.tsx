@@ -4,8 +4,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PlusCircle, Building2 } from "lucide-react";
 import type { Hospital } from "@shared/types";
-import { restoreSession, listHospitals, createHospital } from "@/lib/api";
-import { Alert, Button, Card, EmptyState, LoadingState, PageContainer, PageHeader, TextField } from "@/components/ui";
+import { restoreSession, listHospitals, createHospital, disableHospital, enableHospital, deleteHospital } from "@/lib/api";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  LoadingState,
+  Modal,
+  PageContainer,
+  PageHeader,
+  TextField,
+} from "@/components/ui";
 
 export default function HospitalsPage() {
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
@@ -16,6 +27,10 @@ export default function HospitalsPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [hospitalToDelete, setHospitalToDelete] = useState<Hospital | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     load();
@@ -40,6 +55,11 @@ export default function HospitalsPage() {
     }
   }
 
+  function showError(err: unknown) {
+    setMessage("");
+    setError(err instanceof Error ? err.message : "Something went wrong.");
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -53,9 +73,55 @@ export default function HospitalsPage() {
       setAdminEmail("");
       setHospitals(await listHospitals());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create hospital.");
+      showError(err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Toggles between disable/enable depending on the hospital's current state
+  // — a reversible pause, distinct from Delete below.
+  async function handleToggleActive(hospital: Hospital) {
+    setError("");
+    setMessage("");
+    setTogglingId(hospital.id);
+    try {
+      if (hospital.isActive) {
+        await disableHospital(hospital.id);
+        setMessage(`Disabled "${hospital.name}".`);
+      } else {
+        await enableHospital(hospital.id);
+        setMessage(`Enabled "${hospital.name}".`);
+      }
+      setHospitals(await listHospitals());
+    } catch (err) {
+      showError(err);
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
+  // Clears any stale error before opening a confirmation, so a message from
+  // an earlier, unrelated action can't linger and read as if it applies here.
+  function openDeleteConfirm(hospital: Hospital) {
+    setError("");
+    setMessage("");
+    setHospitalToDelete(hospital);
+  }
+
+  async function handleConfirmDelete() {
+    if (!hospitalToDelete) return;
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteHospital(hospitalToDelete.id);
+      setMessage(`Deleted "${hospitalToDelete.name}".`);
+      setHospitals((prev) => prev.filter((h) => h.id !== hospitalToDelete.id));
+      setHospitalToDelete(null);
+    } catch (err) {
+      showError(err);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -71,7 +137,7 @@ export default function HospitalsPage() {
     return (
       <PageContainer>
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          <Link href="/login" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+          <Link href="/login" className="font-medium text-teal-700 hover:underline dark:text-teal-400">
             Log in
           </Link>{" "}
           to manage hospitals.
@@ -84,7 +150,12 @@ export default function HospitalsPage() {
     <PageContainer>
       <PageHeader title="Hospitals" description="Manage hospitals and administrators." />
 
-      <div className="space-y-6">
+      <div className="mb-6 space-y-3">
+        {message && <Alert variant="success">{message}</Alert>}
+        {error && <Alert variant="error">{error}</Alert>}
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card title="Create a hospital" icon={PlusCircle}>
           <form onSubmit={handleCreate} className="space-y-4">
             <TextField
@@ -107,9 +178,6 @@ export default function HospitalsPage() {
               required
             />
 
-            {message && <Alert variant="success">{message}</Alert>}
-            {error && <Alert variant="error">{error}</Alert>}
-
             <Button type="submit" disabled={loading}>
               {loading ? "Creating..." : "Create hospital"}
             </Button>
@@ -122,15 +190,51 @@ export default function HospitalsPage() {
           ) : (
             <ul className="divide-y divide-slate-200 dark:divide-slate-800">
               {hospitals.map((h) => (
-                <li key={h.id} className="py-3 first:pt-0 last:pb-0">
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{h.name}</p>
-                  <p className="mt-0.5 font-mono text-xs text-slate-500 dark:text-slate-400">Hospital ID: {h.id}</p>
+                <li key={h.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{h.name}</p>
+                      {!h.isActive && <Badge tone="neutral">disabled</Badge>}
+                    </div>
+                    <p className="mt-0.5 font-mono text-xs text-slate-500 dark:text-slate-400">Hospital ID: {h.id}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      variant="secondary"
+                      disabled={togglingId === h.id}
+                      onClick={() => handleToggleActive(h)}
+                    >
+                      {togglingId === h.id ? "..." : h.isActive ? "Disable" : "Enable"}
+                    </Button>
+                    <Button variant="destructive-subtle" onClick={() => openDeleteConfirm(h)}>
+                      Delete
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
         </Card>
       </div>
+
+      <Modal open={!!hospitalToDelete} onClose={() => setHospitalToDelete(null)} title="Delete hospital">
+        <div className="space-y-3">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Delete <span className="font-medium text-slate-900 dark:text-slate-100">{hospitalToDelete?.name}</span>?
+            This permanently deletes the hospital along with every staff and admin membership and every access role
+            tied to it. Their accounts stay — they just lose access to this hospital. This cannot be undone.
+          </p>
+          {error && <Alert variant="error">{error}</Alert>}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setHospitalToDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" disabled={deleting} onClick={handleConfirmDelete}>
+              {deleting ? "Deleting..." : "Delete hospital"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </PageContainer>
   );
 }

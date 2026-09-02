@@ -6,7 +6,7 @@ interface PageHeaderProps {
 export default function PageHeader({ title, description }: PageHeaderProps) {
   return (
     <div className="mb-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+      <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
         {title}
       </h1>
       {description && (

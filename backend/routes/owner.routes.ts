@@ -13,5 +13,8 @@ router.use(requireAuth, requirePortal("owner"));
 
 router.get("/hospitals", ownerController.listHospitals);
 router.post("/hospitals", validate.validateCreateHospital, ownerController.createHospital);
+router.post("/hospitals/:id/disable", ownerController.disableHospital);
+router.post("/hospitals/:id/enable", ownerController.enableHospital);
+router.delete("/hospitals/:id", ownerController.deleteHospital);
 
 export default router;

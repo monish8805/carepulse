@@ -1,8 +1,20 @@
 @import "tailwindcss";
 
-/* Tells native form controls (date pickers, scrollbars, etc.) to render in
-   whichever scheme the OS prefers — CarePulse has no in-app theme toggle,
-   dark mode follows the system setting via Tailwind's default `dark:` variant. */
+/* Switches `dark:` from Tailwind's default `prefers-color-scheme` media query
+   to a manual `.dark` class on <html> — required for the in-app light/dark
+   toggle (ThemeToggle) to actually override the OS setting. The class itself
+   is applied by the inline no-flash script in app/layout.tsx, which resolves
+   a stored override (localStorage "cp-theme") or falls back to the OS
+   preference — see ThemeToggle.tsx for the full read/write logic. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Native form controls (date pickers, scrollbars, etc.) now follow whichever
+   scheme the .dark class currently resolves to, not the raw OS preference —
+   consistent with the toggle rather than fighting it. */
 html {
-  color-scheme: light dark;
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }

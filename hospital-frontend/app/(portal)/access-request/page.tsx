@@ -137,7 +137,7 @@ export default function AccessRequestPage() {
           </div>
         )}
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          <Link href="/login" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+          <Link href="/login" className="font-medium text-teal-700 hover:underline dark:text-teal-400">
             Log in
           </Link>{" "}
           first.

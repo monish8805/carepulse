@@ -304,3 +304,21 @@ export function createHospital(
     body: JSON.stringify(input),
   });
 }
+
+// A reversible pause — every staff/admin membership and AccessRole tied to
+// the hospital is left completely untouched underneath; only access is cut
+// off. See backend's hospital.model.ts for the full rationale.
+export function disableHospital(baseUrl: string, hospitalId: string): Promise<{ message: string; hospital: Hospital }> {
+  return apiFetch(baseUrl, `/api/owner/hospitals/${hospitalId}/disable`, { method: "POST" });
+}
+
+export function enableHospital(baseUrl: string, hospitalId: string): Promise<{ message: string; hospital: Hospital }> {
+  return apiFetch(baseUrl, `/api/owner/hospitals/${hospitalId}/enable`, { method: "POST" });
+}
+
+// Permanent and cascading (deletes the hospital's staff/admin memberships and
+// AccessRoles along with it) — irreversible. The caller is responsible for a
+// real confirmation step before calling this; the backend does not ask twice.
+export function deleteHospital(baseUrl: string, hospitalId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/owner/hospitals/${hospitalId}`, { method: "DELETE" });
+}

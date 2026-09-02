@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 export interface NavItem {
   href: string;
@@ -25,6 +26,11 @@ interface SidebarProps {
   // Namespaces the collapsed-state localStorage key per portal, so each
   // frontend remembers its own sidebar state independently.
   storageKey: string;
+  // Optional inset panel pinned to the bottom (mt-auto) — content (labels,
+  // current-hospital name, a "Switch hospital" link, etc.) is entirely
+  // decided by the owning Layout; Sidebar only owns the panel's chrome.
+  // Hidden while collapsed, same as nav-item labels.
+  footer?: ReactNode;
 }
 
 function isActivePath(pathname: string, href: string): boolean {
@@ -35,7 +41,7 @@ function isActivePath(pathname: string, href: string): boolean {
 // Presentational: renders nav config and tracks the active route. Does not
 // decide what the user is allowed to see — the owning Layout passes in
 // whatever `sections` it has already decided are appropriate.
-export default function Sidebar({ sections, mobileOpen, onCloseMobile, storageKey }: SidebarProps) {
+export default function Sidebar({ sections, mobileOpen, onCloseMobile, storageKey, footer }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -84,7 +90,7 @@ export default function Sidebar({ sections, mobileOpen, onCloseMobile, storageKe
         {sections.map((section, index) => (
           <div key={section.label ?? index}>
             {section.label && !collapsed && (
-              <div className="px-2 pt-2 pb-1 text-xs font-semibold tracking-wide text-slate-400 uppercase dark:text-slate-500">
+              <div className="px-2 pt-2 pb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 {section.label}
               </div>
             )}
@@ -97,19 +103,31 @@ export default function Sidebar({ sections, mobileOpen, onCloseMobile, storageKe
                   href={item.href}
                   onClick={onCloseMobile}
                   title={collapsed ? item.label : undefined}
-                  className={`flex items-center gap-3 truncate rounded-lg px-3 py-2 text-sm font-medium ${
+                  className={`flex items-center gap-3 truncate rounded-lg px-3 py-2 text-sm ${
                     active
-                      ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
-                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                      ? "bg-teal-50 font-semibold text-teal-800 dark:bg-teal-900/30 dark:text-teal-400"
+                      : "font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
-                  {Icon && <Icon className="h-4 w-4 shrink-0" aria-hidden="true" strokeWidth={2} />}
+                  {Icon && (
+                    <Icon
+                      className={`h-4 w-4 shrink-0 ${active ? "" : "text-slate-400 dark:text-slate-500"}`}
+                      aria-hidden="true"
+                      strokeWidth={2}
+                    />
+                  )}
                   {!collapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}
           </div>
         ))}
+
+        {footer && !collapsed && (
+          <div className="mt-auto flex flex-col gap-1 rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/50">
+            {footer}
+          </div>
+        )}
       </nav>
     </>
   );

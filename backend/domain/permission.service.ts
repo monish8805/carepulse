@@ -1,5 +1,6 @@
 import { HospitalMembershipModel } from "../models/hospitalMembership.model";
 import { AccessRoleModel } from "../models/accessRole.model";
+import { HospitalModel } from "../models/hospital.model";
 import { PERMISSIONS, Permission } from "../config/permissions";
 
 // The one place that turns (user, hospital) into an actual permission set.
@@ -18,6 +19,11 @@ export async function resolvePermissions(
 
   const membership = await HospitalMembershipModel.findOne({ userId, hospitalId, status: "active" });
   if (!membership || !membership.accessRoleId) return [];
+
+  // A disabled hospital resolves to zero permissions too, even mid-session —
+  // same fail-closed treatment as every other check in this function.
+  const hospital = await HospitalModel.findById(hospitalId);
+  if (!hospital?.isActive) return [];
 
   // hospital: hospitalId is re-checked here too, not just membership.hospitalId —
   // this is what stops a membership's accessRoleId ever resolving to another

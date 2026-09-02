@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { HospitalMembershipModel } from "../models/hospitalMembership.model";
 import { HospitalModel } from "../models/hospital.model";
+import { AccessRoleModel } from "../models/accessRole.model";
 import { UserModel } from "../models/user.model";
 import { hashValue } from "../utils/hash";
 import { generateTemporaryPassword } from "../utils/password";
@@ -12,6 +13,7 @@ import { resolvePermissions } from "./permission.service";
 interface PopulatedHospital {
   _id: Types.ObjectId;
   name: string;
+  isActive: boolean;
 }
 
 export interface HospitalMembershipSummary {
@@ -43,11 +45,15 @@ export async function listActiveMemberships(userId: string): Promise<HospitalMem
     hospitalId: PopulatedHospital;
   }>("hospitalId");
 
-  return memberships.map((membership) => ({
-    hospitalId: membership.hospitalId._id.toString(),
-    hospitalName: membership.hospitalId.name,
-    role: membership.role,
-  }));
+  // A disabled hospital is hidden from "Your hospitals" — nothing to switch
+  // into while it's paused. The membership itself is untouched underneath.
+  return memberships
+    .filter((membership) => membership.hospitalId.isActive)
+    .map((membership) => ({
+      hospitalId: membership.hospitalId._id.toString(),
+      hospitalName: membership.hospitalId.name,
+      role: membership.role,
+    }));
 }
 
 // The one place that decides whether a user may act as a given hospital. Every
@@ -60,7 +66,7 @@ export async function verifyActiveMembership(userId: string, hospitalId: string)
     status: "active",
   }).populate<{ hospitalId: PopulatedHospital }>("hospitalId");
 
-  if (!membership) {
+  if (!membership || !membership.hospitalId.isActive) {
     throw new HttpError(403, "You do not have access to this hospital.");
   }
 
@@ -87,7 +93,7 @@ export async function getCurrentHospitalContext(
     status: "active",
   }).populate<{ hospitalId: PopulatedHospital }>("hospitalId");
 
-  if (!membership) return null;
+  if (!membership || !membership.hospitalId.isActive) return null;
 
   const canManageStaff = await resolveCanManageStaff(userId, hospitalId, membership.role);
   return {
@@ -103,11 +109,76 @@ export async function getCurrentHospitalContext(
 export interface HospitalSummary {
   id: string;
   name: string;
+  isActive: boolean;
 }
 
+// Owner-facing: every hospital, active and disabled alike — the Owner needs
+// to see a disabled one in order to re-enable (or delete) it.
 export async function listHospitals(): Promise<HospitalSummary[]> {
   const hospitals = await HospitalModel.find().sort({ createdAt: -1 });
-  return hospitals.map((hospital) => ({ id: hospital._id.toString(), name: hospital.name }));
+  return hospitals.map((hospital) => ({
+    id: hospital._id.toString(),
+    name: hospital.name,
+    isActive: hospital.isActive,
+  }));
+}
+
+// Staff-facing: only hospitals currently accepting new requests — used by the
+// "Request hospital access" browse list (GET /api/hospital/hospitals). Reuses
+// HospitalSummary's shape rather than a separate type; isActive is always
+// true here by construction, the field just comes along for free.
+export async function listRequestableHospitals(): Promise<HospitalSummary[]> {
+  const hospitals = await HospitalModel.find({ isActive: true }).sort({ createdAt: -1 });
+  return hospitals.map((hospital) => ({
+    id: hospital._id.toString(),
+    name: hospital.name,
+    isActive: hospital.isActive,
+  }));
+}
+
+// A reversible pause — see the "isActive" comment on models/hospital.model.ts
+// for exactly what this blocks and why nothing else needs to change underneath.
+export async function disableHospital(hospitalId: string): Promise<HospitalSummary> {
+  const hospital = await HospitalModel.findById(hospitalId);
+  if (!hospital) {
+    throw new HttpError(404, "Hospital not found.");
+  }
+  if (!hospital.isActive) {
+    throw new HttpError(409, "This hospital is already disabled.");
+  }
+  hospital.isActive = false;
+  await hospital.save();
+  return { id: hospital._id.toString(), name: hospital.name, isActive: hospital.isActive };
+}
+
+export async function enableHospital(hospitalId: string): Promise<HospitalSummary> {
+  const hospital = await HospitalModel.findById(hospitalId);
+  if (!hospital) {
+    throw new HttpError(404, "Hospital not found.");
+  }
+  if (hospital.isActive) {
+    throw new HttpError(409, "This hospital is already active.");
+  }
+  hospital.isActive = true;
+  await hospital.save();
+  return { id: hospital._id.toString(), name: hospital.name, isActive: hospital.isActive };
+}
+
+// Permanent and cascading, unlike disable — deletes the Hospital record along
+// with every AccessRole and HospitalMembership (staff *and* admin) that
+// belongs to it. Deliberately does NOT touch the User accounts those
+// memberships point to: a person might hold other roles or other hospitals'
+// memberships, so only their access to *this* hospital disappears. There is
+// no undo — the frontend is responsible for a real confirmation step.
+export async function deleteHospital(hospitalId: string): Promise<void> {
+  const hospital = await HospitalModel.findById(hospitalId);
+  if (!hospital) {
+    throw new HttpError(404, "Hospital not found.");
+  }
+
+  await AccessRoleModel.deleteMany({ hospital: hospital._id });
+  await HospitalMembershipModel.deleteMany({ hospitalId: hospital._id });
+  await HospitalModel.deleteOne({ _id: hospital._id });
 }
 
 export interface CreateHospitalResult {
@@ -167,7 +238,7 @@ export async function createHospitalWithAdmin(input: {
   await sendHospitalAdminWelcomeEmail(normalizedEmail, hospital.name, temporaryPassword);
 
   return {
-    hospital: { id: hospital._id.toString(), name: hospital.name },
+    hospital: { id: hospital._id.toString(), name: hospital.name, isActive: hospital.isActive },
     admin: { id: adminUser._id.toString(), name: adminUser.name, email: adminUser.email },
     temporaryPassword,
   };

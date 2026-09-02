@@ -48,6 +48,9 @@ export async function requestAccess(userId: string, hospitalId: string): Promise
   if (!hospital) {
     throw new HttpError(404, "Hospital not found.");
   }
+  if (!hospital.isActive) {
+    throw new HttpError(403, "This hospital is not currently accepting requests.");
+  }
 
   // One membership document per (user, hospital), regardless of status — this
   // is also enforced by the model's unique index; checking first just gives a
@@ -86,7 +89,8 @@ export async function listMyRequests(userId: string): Promise<MyAccessRequestSum
   }>("hospitalId");
 
   // A dangling reference (the Hospital no longer exists) is defensive-only —
-  // no Hospital deletion path exists today — but skip it rather than throw.
+  // deleteHospital cascades and removes this same membership along with it,
+  // so it shouldn't happen — but skip it rather than throw.
   return memberships.flatMap((membership) => {
     if (!membership.hospitalId) return [];
     return [

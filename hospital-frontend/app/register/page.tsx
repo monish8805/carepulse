@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Activity } from "lucide-react";
 import { register, verifyOtp } from "@/lib/api";
-import { Alert, Button, Card, Stepper, TextField } from "@/components/ui";
+import { Alert, Button, Card, Stepper, TextField, ThemeToggle } from "@/components/ui";
 
 const STEP_LABELS = ["Details", "Password", "Verify"];
 
@@ -54,11 +55,21 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 dark:bg-slate-950">
+    <main className="relative flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 dark:bg-slate-950">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Create your account</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">CarePulse Hospital Portal</p>
+        <div className="mb-6 flex flex-col items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600 text-white">
+            <Activity className="h-5 w-5" aria-hidden="true" strokeWidth={2} />
+          </span>
+          <div className="text-center">
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+              Create your account
+            </h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">CarePulse Hospital Portal</p>
+          </div>
         </div>
 
         {step !== "done" && (
@@ -155,7 +166,7 @@ export default function RegisterPage() {
           {step !== "done" && (
             <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
               Already have an account?{" "}
-              <Link href="/login" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+              <Link href="/login" className="font-medium text-teal-700 hover:underline dark:text-teal-400">
                 Log in
               </Link>
             </p>

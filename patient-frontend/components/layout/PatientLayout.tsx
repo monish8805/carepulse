@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { UserRound, Settings } from "lucide-react";
 import type { AuthUser } from "@shared/types";
-import { restoreSession, logout } from "@/lib/api";
+import { restoreSession, logout, getBackendHealth } from "@/lib/api";
 import Header from "./Header";
 import type { AccountMenuItem } from "./AccountMenu";
 
@@ -12,8 +13,8 @@ import type { AccountMenuItem } from "./AccountMenu";
 // /Settings have no page yet, so they render disabled with a "Coming soon"
 // hint rather than linking somewhere that doesn't exist.
 const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
-  { label: "Profile", disabled: true, hint: "Coming soon" },
-  { label: "Settings", disabled: true, hint: "Coming soon" },
+  { label: "Profile", icon: UserRound, disabled: true, hint: "Coming soon" },
+  { label: "Settings", icon: Settings, disabled: true, hint: "Coming soon" },
 ];
 
 // Owns the application shell (header only — no sidebar yet, see layout.css)
@@ -27,6 +28,11 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [backendUp, setBackendUp] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    getBackendHealth().then(setBackendUp);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,7 +75,8 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
   return (
     <div className="flex min-h-screen flex-col">
       <Header
-        title="CarePulse — Patient"
+        portalName="Patient"
+        backendUp={backendUp}
         userName={user.name}
         userEmail={user.email}
         accountMenuItems={ACCOUNT_MENU_ITEMS}

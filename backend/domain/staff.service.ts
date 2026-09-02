@@ -43,6 +43,10 @@ async function assertCanManageStaff(userId: string, hospitalId: string): Promise
   if (!membership) {
     throw new HttpError(403, "You do not have access to this hospital.");
   }
+  const hospital = await HospitalModel.findById(hospitalId);
+  if (!hospital?.isActive) {
+    throw new HttpError(403, "This hospital is currently disabled.");
+  }
   if (membership.role === "admin") {
     return { isAdmin: true };
   }

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { UserRound, Settings } from "lucide-react";
 import type { AuthUser } from "@shared/types";
-import { restoreSession, logout } from "@/lib/api";
+import { restoreSession, logout, getBackendHealth } from "@/lib/api";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import type { AccountMenuItem } from "./AccountMenu";
@@ -14,8 +15,8 @@ import { OWNER_NAV_SECTIONS } from "./nav";
 // split). Profile/Settings have no page yet, so they render disabled with a
 // "Coming soon" hint rather than linking somewhere that doesn't exist.
 const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
-  { label: "Profile", disabled: true, hint: "Coming soon" },
-  { label: "Settings", disabled: true, hint: "Coming soon" },
+  { label: "Profile", icon: UserRound, disabled: true, hint: "Coming soon" },
+  { label: "Settings", icon: Settings, disabled: true, hint: "Coming soon" },
 ];
 
 // Owns the application shell (header + sidebar) for every route under
@@ -30,6 +31,11 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [backendUp, setBackendUp] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    getBackendHealth().then(setBackendUp);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,7 +78,8 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex min-h-screen flex-col">
       <Header
-        title="CarePulse — Owner"
+        portalName="Owner"
+        backendUp={backendUp}
         userName={user.name}
         userEmail={user.email}
         accountMenuItems={ACCOUNT_MENU_ITEMS}
@@ -87,6 +94,17 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
           mobileOpen={mobileOpen}
           onCloseMobile={() => setMobileOpen(false)}
           storageKey="cp-owner-sidebar-collapsed"
+          footer={
+            <>
+              <span className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+                Signed in as
+              </span>
+              <span className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {user.name}
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">Platform owner</span>
+            </>
+          }
         />
         <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
       </div>

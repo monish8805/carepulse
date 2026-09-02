@@ -40,3 +40,15 @@ export function listHospitals() {
 export function createHospital(input: { hospitalName: string; adminName: string; adminEmail: string }) {
   return sharedApi.createHospital(BACKEND_URL, input);
 }
+
+export function disableHospital(hospitalId: string) {
+  return sharedApi.disableHospital(BACKEND_URL, hospitalId);
+}
+
+export function enableHospital(hospitalId: string) {
+  return sharedApi.enableHospital(BACKEND_URL, hospitalId);
+}
+
+export function deleteHospital(hospitalId: string) {
+  return sharedApi.deleteHospital(BACKEND_URL, hospitalId);
+}

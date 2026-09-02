@@ -1,24 +1,22 @@
 interface AvatarProps {
   name: string;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
   className?: string;
 }
 
 const SIZE_CLASSES: Record<NonNullable<AvatarProps["size"]>, string> = {
   sm: "h-7 w-7 text-xs",
   md: "h-9 w-9 text-sm",
+  lg: "h-12 w-12 text-base",
 };
 
 // Small fixed palette so the same name always maps to the same color (a
 // simple hash of the name picks the index) — purely decorative, never used
 // to convey meaning the way Badge's tone does.
 const PALETTE = [
-  "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400",
-  "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
   "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400",
+  "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
   "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
-  "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
-  "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
 ];
 
 function paletteIndex(name: string): number {

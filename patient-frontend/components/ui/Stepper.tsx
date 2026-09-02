@@ -16,19 +16,19 @@ export default function Stepper({ labels, currentIndex }: StepperProps) {
           <div key={label} className={`flex items-center ${index < labels.length - 1 ? "flex-1" : ""}`}>
             <div className="flex flex-col items-center gap-1.5">
               <div
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
                   isComplete || isCurrent
-                    ? "bg-indigo-600 text-white"
-                    : "border border-slate-300 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
+                    ? "bg-teal-700 text-white"
+                    : "border border-slate-300 bg-white text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
                 }`}
               >
                 {isComplete ? "✓" : index + 1}
               </div>
               <span
-                className={`text-xs font-medium tracking-wide uppercase ${
+                className={`text-xs tracking-wide uppercase ${
                   isCurrent
-                    ? "text-slate-900 dark:text-slate-100"
-                    : "text-slate-400 dark:text-slate-500"
+                    ? "font-semibold text-teal-800 dark:text-teal-400"
+                    : "font-medium text-slate-500 dark:text-slate-500"
                 }`}
               >
                 {label}
@@ -36,8 +36,8 @@ export default function Stepper({ labels, currentIndex }: StepperProps) {
             </div>
             {index < labels.length - 1 && (
               <div
-                className={`mx-2 mt-4 h-px flex-1 ${
-                  isComplete ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-800"
+                className={`mx-2 mt-3.5 h-0.5 flex-1 ${
+                  isComplete ? "bg-teal-700" : "bg-slate-200 dark:bg-slate-800"
                 }`}
               />
             )}

@@ -17,11 +17,13 @@ export async function getMemberships(req: AuthenticatedRequest, res: Response, n
 
 // Lets any authenticated Hospital Portal session browse hospitals to request
 // access to — this is the directory a first-time (or additional-hospital)
-// requester needs; it's the same listing the Owner Portal uses, just reused
-// here for a different, non-admin purpose. Names/ids only, nothing sensitive.
+// requester needs. Only currently-active hospitals show up here (a disabled
+// one isn't accepting requests); the Owner Portal's own list is separate and
+// deliberately shows disabled hospitals too, since re-enabling one requires
+// being able to find it. Names/ids only, nothing sensitive.
 export async function getAllHospitals(_req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
-    const hospitals = await hospitalService.listHospitals();
+    const hospitals = await hospitalService.listRequestableHospitals();
     res.status(200).json({ hospitals });
   } catch (err) {
     next(err);
