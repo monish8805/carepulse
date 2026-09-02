@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import Avatar from "@/components/ui/Avatar";
 
 export interface AccountMenuItem {
   label: string;
@@ -109,12 +110,10 @@ export default function AccountMenu({ userName, userEmail, items, onLogout }: Ac
             setOpen(true);
           }
         }}
-        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 dark:text-slate-200 dark:hover:bg-slate-800"
+        className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 dark:text-slate-200 dark:hover:bg-slate-800"
       >
         <span className="hidden max-w-[10rem] truncate sm:inline">{userName}</span>
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">
-          {userName.charAt(0).toUpperCase()}
-        </span>
+        <Avatar name={userName} size="sm" />
         <span aria-hidden="true" className={`text-xs text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}>
           ⌄
         </span>
@@ -126,7 +125,7 @@ export default function AccountMenu({ userName, userEmail, items, onLogout }: Ac
           role="menu"
           aria-label="Account menu"
           onKeyDown={handleMenuKeyDown}
-          className="absolute right-0 top-full z-30 mt-2 w-60 rounded-md border border-slate-200 bg-white py-1 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+          className="absolute right-0 top-full z-30 mt-2 w-60 rounded-lg border border-slate-200 bg-white py-1 shadow-sm dark:border-slate-700 dark:bg-slate-900"
         >
           <div className="border-b border-slate-200 px-3 py-2 dark:border-slate-800">
             <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{userName}</p>

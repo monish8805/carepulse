@@ -16,7 +16,7 @@ export default function Checkbox({ label, id, className = "", ...props }: Checkb
       <input
         id={inputId}
         type="checkbox"
-        className="h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-600 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-900"
+        className="h-4 w-4 shrink-0 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-600 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-900"
         {...props}
       />
       <label htmlFor={inputId} className="text-sm text-slate-700 dark:text-slate-300">

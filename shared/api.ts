@@ -9,6 +9,7 @@ import type {
   AccessRequest,
   MyAccessRequest,
   StaffMember,
+  AddStaffResult,
   Role,
 } from "./types";
 
@@ -231,6 +232,12 @@ export function rejectAccessRequest(baseUrl: string, requestId: string) {
   return apiFetch(baseUrl, `/api/hospital/access-requests/${requestId}/reject`, { method: "POST" });
 }
 
+// User-scoped, not hospital-scoped — lets a requester withdraw their own
+// pending request from anywhere, same as creating one.
+export function cancelAccessRequest(baseUrl: string, requestId: string) {
+  return apiFetch(baseUrl, `/api/hospital/access-requests/${requestId}/cancel`, { method: "POST" });
+}
+
 // Staff management: already-active members, distinct from the pending
 // requests above. Visible/usable by an admin or a staff member whose current
 // AccessRole includes staff.manage (see HospitalContext.canManageStaff).
@@ -241,6 +248,42 @@ export async function listStaff(baseUrl: string): Promise<StaffMember[]> {
 
 export function removeStaffMember(baseUrl: string, membershipId: string): Promise<{ message: string }> {
   return apiFetch(baseUrl, `/api/hospital/staff/${membershipId}`, { method: "DELETE" });
+}
+
+// A reversible, temporary suspension — distinct from removeStaffMember above.
+// Visible/usable by the same audience as removeStaffMember (admin or a
+// staff.manage holder, with the same peer-protection rule server-side).
+export function disableStaffMember(baseUrl: string, membershipId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/hospital/staff/${membershipId}/disable`, { method: "POST" });
+}
+
+export function enableStaffMember(baseUrl: string, membershipId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/hospital/staff/${membershipId}/enable`, { method: "POST" });
+}
+
+// Admin-only — reassigns which AccessRole a staff member currently holds.
+export function updateStaffRole(
+  baseUrl: string,
+  membershipId: string,
+  accessRoleId: string
+): Promise<{ message: string; accessRoleName: string }> {
+  return apiFetch(baseUrl, `/api/hospital/staff/${membershipId}/role`, {
+    method: "PATCH",
+    body: JSON.stringify({ accessRoleId }),
+  });
+}
+
+// Admin-only. Creates a User (emailing a temporary password) if the email
+// isn't registered yet, or grants an existing account hospital access —
+// either way ending in one active HospitalMembership.
+export function addStaff(
+  baseUrl: string,
+  input: { name: string; email: string; accessRoleId: string }
+): Promise<AddStaffResult> {
+  return apiFetch(baseUrl, "/api/hospital/staff", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 // Owner Portal only, below this point.

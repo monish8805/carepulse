@@ -6,6 +6,7 @@ import * as staffController from "../controllers/staff.controller";
 import * as validate from "../validators/hospital.validator";
 import * as validateAccessRole from "../validators/accessRole.validator";
 import * as validateAccessRequest from "../validators/accessRequest.validator";
+import * as validateStaff from "../validators/staff.validator";
 import { requireAuth, requirePortal } from "../middleware/auth.middleware";
 
 const router = Router();
@@ -29,12 +30,18 @@ router.patch(
 );
 router.delete("/access-roles/:id", accessRoleController.deleteAccessRole);
 
-// Staff management: listing/removing already-ACTIVE staff, distinct from the
-// pending-request review below. Admin-gated the same way as access-roles, OR
-// a staff member whose current AccessRole includes staff.manage — see
-// domain/staff.service.ts for the peer-protection rule that applies there.
+// Staff management: listing/removing already-ACTIVE (or disabled) staff,
+// distinct from the pending-request review below. Admin-gated the same way as
+// access-roles, OR a staff member whose current AccessRole includes
+// staff.manage — see domain/staff.service.ts for the peer-protection rule
+// that applies to remove/disable. Reassigning a staff member's role
+// (PATCH .../role) is admin-only, same family as access-role management below.
 router.get("/staff", staffController.listStaff);
+router.post("/staff", validateStaff.validateAddStaff, staffController.addStaff);
 router.delete("/staff/:id", staffController.removeStaffMember);
+router.patch("/staff/:id/role", validateStaff.validateUpdateStaffRole, staffController.updateStaffRole);
+router.post("/staff/:id/disable", staffController.disableStaff);
+router.post("/staff/:id/enable", staffController.enableStaff);
 
 // Staff access-request lifecycle. Creating a request and checking your own
 // requests need no hospital context (a first-time requester has none yet);
@@ -49,5 +56,8 @@ router.get("/access-requests/mine", accessRequestController.listMyAccessRequests
 router.get("/access-requests", accessRequestController.listPendingAccessRequests);
 router.post("/access-requests/:id/approve", validateAccessRequest.validateApproveRequest, accessRequestController.approveAccessRequest);
 router.post("/access-requests/:id/reject", accessRequestController.rejectAccessRequest);
+// User-scoped, not hospital-scoped — same as create/list-mine above (see
+// accessRequestService.cancelRequest).
+router.post("/access-requests/:id/cancel", accessRequestController.cancelAccessRequest);
 
 export default router;

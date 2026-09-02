@@ -95,10 +95,30 @@ export function rejectAccessRequest(requestId: string) {
   return sharedApi.rejectAccessRequest(BACKEND_URL, requestId);
 }
 
+export function cancelAccessRequest(requestId: string) {
+  return sharedApi.cancelAccessRequest(BACKEND_URL, requestId);
+}
+
 export function listStaff() {
   return sharedApi.listStaff(BACKEND_URL);
 }
 
 export function removeStaffMember(membershipId: string) {
   return sharedApi.removeStaffMember(BACKEND_URL, membershipId);
+}
+
+export function addStaff(input: { name: string; email: string; accessRoleId: string }) {
+  return sharedApi.addStaff(BACKEND_URL, input);
+}
+
+export function disableStaffMember(membershipId: string) {
+  return sharedApi.disableStaffMember(BACKEND_URL, membershipId);
+}
+
+export function enableStaffMember(membershipId: string) {
+  return sharedApi.enableStaffMember(BACKEND_URL, membershipId);
+}
+
+export function updateStaffRole(membershipId: string, accessRoleId: string) {
+  return sharedApi.updateStaffRole(BACKEND_URL, membershipId, accessRoleId);
 }

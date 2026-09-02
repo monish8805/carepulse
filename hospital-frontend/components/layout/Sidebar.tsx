@@ -3,10 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 
 export interface NavItem {
   href: string;
   label: string;
+  // Decorative only — the label is always present for a screen reader, and
+  // when collapsed the icon still has the label as its `title`/tooltip.
+  icon?: LucideIcon;
 }
 
 export interface NavSection {
@@ -72,7 +76,7 @@ export default function Sidebar({ sections, mobileOpen, onCloseMobile, storageKe
           type="button"
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="hidden self-end rounded-md px-2 py-1 text-sm text-slate-500 hover:bg-slate-100 md:block dark:text-slate-400 dark:hover:bg-slate-800"
+          className="hidden self-end rounded-lg px-2 py-1 text-sm text-slate-500 hover:bg-slate-100 md:block dark:text-slate-400 dark:hover:bg-slate-800"
         >
           {collapsed ? "»" : "«"}
         </button>
@@ -86,19 +90,21 @@ export default function Sidebar({ sections, mobileOpen, onCloseMobile, storageKe
             )}
             {section.items.map((item) => {
               const active = isActivePath(pathname, item.href);
+              const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={onCloseMobile}
                   title={collapsed ? item.label : undefined}
-                  className={`block truncate rounded-md px-3 py-2 text-sm font-medium ${
+                  className={`flex items-center gap-3 truncate rounded-lg px-3 py-2 text-sm font-medium ${
                     active
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                      ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
-                  {collapsed ? item.label.slice(0, 1) : item.label}
+                  {Icon && <Icon className="h-4 w-4 shrink-0" aria-hidden="true" strokeWidth={2} />}
+                  {!collapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}

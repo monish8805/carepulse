@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Building2 } from "lucide-react";
 import type { SessionUser, HospitalMembership } from "@shared/types";
 import { getBackendHealth, restoreSession, getMe, listHospitalMemberships, selectHospital } from "@/lib/api";
 import { Alert, Badge, Button, Card, EmptyState, LoadingState, PageContainer, PageHeader } from "@/components/ui";
@@ -97,7 +98,7 @@ export default function Home() {
           </Card>
 
           {memberships && memberships.length > 0 ? (
-            <Card title="Your hospitals">
+            <Card title="Your hospitals" icon={Building2}>
               <ul className="divide-y divide-slate-200 dark:divide-slate-800">
                 {memberships.map((m) => {
                   const isCurrent = m.hospitalId === user.hospital?.id;
@@ -135,11 +136,11 @@ export default function Home() {
         </div>
       ) : (
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          <Link href="/login" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+          <Link href="/login" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
             Log in
           </Link>{" "}
           or{" "}
-          <Link href="/register" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+          <Link href="/register" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
             Register
           </Link>
         </p>

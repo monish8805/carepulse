@@ -40,11 +40,11 @@ export default function Home() {
         </Card>
       ) : (
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          <Link href="/login" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+          <Link href="/login" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
             Log in
           </Link>{" "}
           or{" "}
-          <Link href="/register" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+          <Link href="/register" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
             Register
           </Link>
         </p>

@@ -31,7 +31,14 @@ export interface MyAccessRequestSummary {
   hospitalName: string;
   role: string;
   status: string;
+  createdAt: Date;
 }
+
+// Both "removed" (an admin/manager removed an active staff member) and
+// "cancelled" (the requester withdrew their own pending one) are non-terminal
+// — unlike "rejected", either lets the same person ask again. See
+// models/hospitalMembership.model.ts for the full status lifecycle.
+const REREQUESTABLE_STATUSES = new Set(["removed", "cancelled"]);
 
 // Creates a pending HospitalMembership. This alone grants no access — every
 // existing access check (verifyActiveMembership, resolvePermissions) requires
@@ -46,13 +53,12 @@ export async function requestAccess(userId: string, hospitalId: string): Promise
   // is also enforced by the model's unique index; checking first just gives a
   // clean 409 instead of a raw duplicate-key error. A rejected request isn't
   // automatically re-requestable — a deliberate scope limit for this phase
-  // (see PRD.md). A *removed* one (a former staff member — see
-  // domain/staff.service.ts::removeStaffMember) is different: they were
-  // active once, so they're allowed to ask again — reusing this same document
-  // (the unique index allows only one) rather than creating a second.
+  // (see PRD.md). A *removed* or *cancelled* one is different — see
+  // REREQUESTABLE_STATUSES above — reusing this same document (the unique
+  // index allows only one) rather than creating a second.
   const existing = await HospitalMembershipModel.findOne({ userId, hospitalId });
   if (existing) {
-    if (existing.status === "removed") {
+    if (REREQUESTABLE_STATUSES.has(existing.status)) {
       existing.status = "pending";
       existing.role = "staff";
       existing.accessRoleId = undefined;
@@ -90,6 +96,7 @@ export async function listMyRequests(userId: string): Promise<MyAccessRequestSum
         hospitalName: membership.hospitalId.name,
         role: membership.role,
         status: membership.status,
+        createdAt: membership.createdAt,
       },
     ];
   });
@@ -174,6 +181,26 @@ export async function rejectRequest(
   }
 
   membership.status = "rejected";
+  await membership.save();
+
+  return { id: membership._id.toString(), status: membership.status };
+}
+
+// User-scoped, not hospital-scoped: the requester may have no hospital
+// context selected at all (they haven't been approved into any hospital
+// yet), so this looks the request up by ownership instead, matching how
+// requestAccess/listMyRequests are scoped.
+export async function cancelRequest(userId: string, requestId: string): Promise<{ id: string; status: string }> {
+  const membership = await HospitalMembershipModel.findOne({ _id: requestId, userId });
+  if (!membership) {
+    throw new HttpError(404, "Request not found.");
+  }
+
+  if (membership.status !== "pending") {
+    throw new HttpError(409, `This request is already ${membership.status} and cannot be cancelled.`);
+  }
+
+  membership.status = "cancelled";
   await membership.save();
 
   return { id: membership._id.toString(), status: membership.status };

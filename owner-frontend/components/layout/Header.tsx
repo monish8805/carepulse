@@ -38,7 +38,7 @@ export default function Header({
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
             onClick={onToggleMobileMenu}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 md:hidden dark:text-slate-300 dark:hover:bg-slate-800"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 md:hidden dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <span className="flex flex-col gap-1">
               <span className="block h-0.5 w-4 bg-current" />

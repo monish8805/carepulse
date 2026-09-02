@@ -65,3 +65,24 @@ export async function sendHospitalAdminWelcomeEmail(
      <p>Log in at the Hospital Portal, and use "Forgot password" any time to set your own password.</p>`
   );
 }
+
+// Sent once when a hospital admin adds a brand-new staff member directly
+// (domain/staff.service.ts::addStaffDirectly) — only when a new User account
+// had to be created for them; an existing account keeps its own password and
+// gets no email. Same one-time-transmission rule as the admin welcome email.
+export async function sendStaffWelcomeEmail(
+  email: string,
+  hospitalName: string,
+  roleName: string,
+  temporaryPassword: string
+): Promise<void> {
+  console.log(`[Staff] Temporary password for ${email} (${hospitalName}, ${roleName}): ${temporaryPassword}`);
+
+  await sendEmail(
+    email,
+    "You've been added to CarePulse",
+    `<p>You've been added as <strong>${roleName}</strong> staff at <strong>${hospitalName}</strong> on CarePulse.</p>
+     <p>Temporary password: <strong>${temporaryPassword}</strong></p>
+     <p>Log in at the Hospital Portal, and use "Forgot password" any time to set your own password.</p>`
+  );
+}

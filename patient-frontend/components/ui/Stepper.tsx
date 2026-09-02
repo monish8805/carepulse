@@ -18,7 +18,7 @@ export default function Stepper({ labels, currentIndex }: StepperProps) {
               <div
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
                   isComplete || isCurrent
-                    ? "bg-blue-600 text-white"
+                    ? "bg-indigo-600 text-white"
                     : "border border-slate-300 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
                 }`}
               >
@@ -37,7 +37,7 @@ export default function Stepper({ labels, currentIndex }: StepperProps) {
             {index < labels.length - 1 && (
               <div
                 className={`mx-2 mt-4 h-px flex-1 ${
-                  isComplete ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-800"
+                  isComplete ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-800"
                 }`}
               />
             )}

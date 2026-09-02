@@ -59,3 +59,15 @@ export async function rejectAccessRequest(req: AuthenticatedRequest, res: Respon
     next(err);
   }
 }
+
+// User-scoped (see accessRequestService.cancelRequest) — deliberately no
+// hospital-context requirement, matching createAccessRequest/
+// listMyAccessRequests above.
+export async function cancelAccessRequest(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const membership = await accessRequestService.cancelRequest(req.userId!, req.params.id);
+    res.status(200).json({ message: "Request cancelled.", membership });
+  } catch (err) {
+    next(err);
+  }
+}

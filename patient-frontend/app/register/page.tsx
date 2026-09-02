@@ -155,7 +155,7 @@ export default function RegisterPage() {
           {step !== "done" && (
             <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
               Already have an account?{" "}
-              <Link href="/login" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+              <Link href="/login" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
                 Log in
               </Link>
             </p>

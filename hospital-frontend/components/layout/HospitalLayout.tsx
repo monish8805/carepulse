@@ -6,7 +6,6 @@ import type { SessionUser } from "@shared/types";
 import { restoreSession, getMe, logout } from "@/lib/api";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
-import RequestAccessModal from "./RequestAccessModal";
 import type { AccountMenuItem } from "./AccountMenu";
 import { HOSPITAL_NAV_SECTIONS } from "./nav";
 
@@ -24,7 +23,6 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
   const [user, setUser] = useState<SessionUser | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [requestAccessOpen, setRequestAccessOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,7 +74,7 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
   // disabled rather than linking somewhere that doesn't exist.
   const accountMenuItems: AccountMenuItem[] = [
     { label: "Profile", disabled: true, hint: "Coming soon" },
-    { label: "Request hospital access", onClick: () => setRequestAccessOpen(true) },
+    { label: "Request hospital access", onClick: () => router.push("/access-request") },
     { label: "Settings", disabled: true, hint: "Coming soon" },
   ];
 
@@ -102,7 +100,6 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
         />
         <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
       </div>
-      <RequestAccessModal open={requestAccessOpen} onClose={() => setRequestAccessOpen(false)} />
     </div>
   );
 }

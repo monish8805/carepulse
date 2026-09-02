@@ -69,17 +69,32 @@ export interface MyAccessRequest {
   hospitalName: string;
   role: string;
   status: string;
+  createdAt: string;
 }
 
-// An already-active staff member, as seen by someone who can manage staff
+// A staff member (active or disabled), as seen by someone who can manage staff
 // (an admin, or a staff member whose AccessRole includes staff.manage).
 export interface StaffMember {
   id: string; // HospitalMembership id
   userId: string;
   userName: string;
   userEmail: string;
+  accessRoleId: string | null;
   accessRoleName: string | null;
+  // "active" | "disabled" — a disabled member keeps their role assignment but
+  // has zero effective permissions until re-enabled; see backend's
+  // hospitalMembership.model.ts for the full state-machine rationale.
+  status: string;
   canManageStaff: boolean;
+}
+
+export interface AddStaffResult {
+  membershipId: string;
+  userId: string;
+  email: string;
+  // Whether a brand-new account was created (and so a temporary password was
+  // emailed) — false for an existing account, which keeps its own password.
+  createdNewUser: boolean;
 }
 
 // Owner Portal only, below this point.

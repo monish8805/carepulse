@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PlusCircle, Building2 } from "lucide-react";
 import type { Hospital } from "@shared/types";
 import { restoreSession, listHospitals, createHospital } from "@/lib/api";
 import { Alert, Button, Card, EmptyState, LoadingState, PageContainer, PageHeader, TextField } from "@/components/ui";
@@ -70,7 +71,7 @@ export default function HospitalsPage() {
     return (
       <PageContainer>
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          <Link href="/login" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+          <Link href="/login" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
             Log in
           </Link>{" "}
           to manage hospitals.
@@ -84,7 +85,7 @@ export default function HospitalsPage() {
       <PageHeader title="Hospitals" description="Manage hospitals and administrators." />
 
       <div className="space-y-6">
-        <Card title="Create a hospital">
+        <Card title="Create a hospital" icon={PlusCircle}>
           <form onSubmit={handleCreate} className="space-y-4">
             <TextField
               label="Hospital name"
@@ -115,7 +116,7 @@ export default function HospitalsPage() {
           </form>
         </Card>
 
-        <Card title="Existing hospitals">
+        <Card title="Existing hospitals" icon={Building2}>
           {hospitals.length === 0 ? (
             <EmptyState title="No hospitals yet" />
           ) : (

@@ -1,3 +1,4 @@
+import { Home, ShieldCheck } from "lucide-react";
 import type { NavSection } from "./Sidebar";
 
 // Config-driven nav, kept next to HospitalLayout rather than inside the
@@ -6,8 +7,8 @@ import type { NavSection } from "./Sidebar";
 export const HOSPITAL_NAV_SECTIONS: NavSection[] = [
   {
     items: [
-      { href: "/", label: "Home" },
-      { href: "/access", label: "Access & Roles" },
+      { href: "/", label: "Home", icon: Home },
+      { href: "/access", label: "Access & Roles", icon: ShieldCheck },
     ],
   },
 ];
