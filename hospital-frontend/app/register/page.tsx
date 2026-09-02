@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { register, verifyOtp } from "@/lib/api";
+import { Alert, Button, Card, TextField } from "@/components/ui";
 
 export default function RegisterPage() {
   const [step, setStep] = useState<"form" | "otp" | "done">("form");
@@ -42,62 +43,81 @@ export default function RegisterPage() {
   }
 
   return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif", maxWidth: 400 }}>
-      <h1>Hospital Registration</h1>
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 dark:bg-slate-950">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 text-center">
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">CarePulse</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Hospital Portal — Register</p>
+        </div>
 
-      {step === "form" && (
-        <form onSubmit={handleRegister}>
-          <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required />
-          <br />
-          <input
-            placeholder="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <br />
-          <input
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <br />
-          <button type="submit" disabled={loading}>
-            {loading ? "Sending code..." : "Register"}
-          </button>
-        </form>
-      )}
+        <Card>
+          {step === "form" && (
+            <form onSubmit={handleRegister} className="space-y-4">
+              <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
+              <TextField
+                label="Email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <TextField
+                label="Password"
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
 
-      {step === "otp" && (
-        <form onSubmit={handleVerify}>
-          <p>We sent a verification code to {email}.</p>
-          <input
-            placeholder="6-digit code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            required
-          />
-          <br />
-          <button type="submit" disabled={loading}>
-            {loading ? "Verifying..." : "Verify"}
-          </button>
-        </form>
-      )}
+              {error && <Alert variant="error">{error}</Alert>}
 
-      {step === "done" && (
-        <p>
-          Your account is verified. <Link href="/login">Log in</Link>
-        </p>
-      )}
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? "Sending code..." : "Register"}
+              </Button>
+            </form>
+          )}
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+          {step === "otp" && (
+            <form onSubmit={handleVerify} className="space-y-4">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                We sent a verification code to <span className="font-medium">{email}</span>.
+              </p>
+              <TextField
+                label="6-digit code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                required
+              />
 
-      <p>
-        Already have an account? <Link href="/login">Log in</Link>
-      </p>
+              {error && <Alert variant="error">{error}</Alert>}
+
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? "Verifying..." : "Verify"}
+              </Button>
+            </form>
+          )}
+
+          {step === "done" && (
+            <div className="space-y-4">
+              <Alert variant="success">Your account is verified.</Alert>
+              <Link href="/login">
+                <Button className="w-full">Log in</Button>
+              </Link>
+            </div>
+          )}
+
+          {step !== "done" && (
+            <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
+              Already have an account?{" "}
+              <Link href="/login" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+                Log in
+              </Link>
+            </p>
+          )}
+        </Card>
+      </div>
     </main>
   );
 }

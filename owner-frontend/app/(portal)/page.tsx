@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { AuthUser } from "@shared/types";
-import { getBackendHealth, restoreSession, logout } from "@/lib/api";
+import { getBackendHealth, restoreSession } from "@/lib/api";
+import { Card, LoadingState, PageContainer, PageHeader } from "@/components/ui";
 
 export default function Home() {
   const [backendUp, setBackendUp] = useState<boolean | null>(null);
@@ -21,33 +22,29 @@ export default function Home() {
       .finally(() => setCheckingSession(false));
   }, []);
 
-  async function handleLogout() {
-    await logout();
-    setUser(null);
-  }
-
   return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h1>CarePulse — Owner</h1>
-      <p>Backend status: {backendUp === null ? "checking..." : backendUp ? "connected" : "not connected"}</p>
+    <PageContainer>
+      <PageHeader
+        title="CarePulse — Owner"
+        description={`Backend status: ${backendUp === null ? "checking..." : backendUp ? "connected" : "not connected"}`}
+      />
 
       {checkingSession ? (
-        <p>Loading...</p>
+        <LoadingState />
       ) : user ? (
-        <>
-          <p>
-            Logged in as {user.name} ({user.email})
+        <Card>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Logged in as{" "}
+            <span className="font-medium text-slate-900 dark:text-slate-100">{user.name}</span> ({user.email})
           </p>
-          <p>
-            <Link href="/hospitals">Hospitals</Link>
-          </p>
-          <button onClick={handleLogout}>Log out</button>
-        </>
+        </Card>
       ) : (
-        <p>
-          <Link href="/login">Log in</Link>
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          <Link href="/login" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+            Log in
+          </Link>
         </p>
       )}
-    </main>
+    </PageContainer>
   );
 }

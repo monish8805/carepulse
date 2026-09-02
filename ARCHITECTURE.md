@@ -82,6 +82,19 @@ The lifecycle: `staff requests access (pending) → admin reviews → approve (a
 
 Still **Planned**: an admin endpoint to re-assign or change an already-active staff member's `AccessRole` outside of the initial approval, and re-requesting after a rejection (currently terminal — see PRD.md).
 
+## Frontend UI system — **Live** (existing pages fully styled — no new dashboards/clinical content yet)
+
+Each of the three frontends has Tailwind CSS v4 installed (`tailwindcss` + `@tailwindcss/postcss`, imported via `@import "tailwindcss";` in `app/globals.css` — no other styling system) plus a small shared UI primitive set at `components/ui/` (`Button`, `Card`, `TextField`, `Alert`, `Badge`, `EmptyState`, `LoadingState`, etc.), duplicated per app like the layout components below. See DESIGN.md for the full component list and the color/typography/spacing conventions built on top of it. Every existing page — auth pages and every protected page's actual content — uses these; there is no remaining inline-`style={{...}}` or unstyled native form control anywhere in the three frontends.
+
+Each frontend also has its own `components/layout/` with a portal-specific `<Portal>Layout` (`PatientLayout`/`HospitalLayout`/`OwnerLayout`), plus generic `Header` and `Sidebar` components duplicated per app (not pulled into `shared/` — see CLAUDE.md for why). The shell is Tailwind utility classes, like everything else — there is no separate CSS file for it.
+
+- **Routing integration:** each app has an `app/(portal)/` route group whose `layout.tsx` renders `<Portal>Layout>{children}</Portal>`. A route group changes nothing about the URL — `/`, `/access`, `/hospitals` are exactly what they were before. `/login`, `/register`, `/forgot-password` live outside the group and are never wrapped in shell chrome.
+- **Session ownership:** `<Portal>Layout` does its own `restoreSession()`/`getMe()` call solely to decide whether to render Header/Sidebar at all and what to put in them (user name/email, current hospital, admin-gated nav). It does not gate page content — while no session is confirmed (or there isn't one), it renders `children` bare, so each page's own existing auth/loading state (already built before the shell existed) is unchanged and still the thing that actually decides what a logged-out visitor sees. Real access control remains entirely server-side.
+- **Header:** presentational only (`title`, `subtitle`, `userName`/`userEmail`, `onLogout`, mobile-menu props) — never resolves permissions or session state itself; the owning Layout passes in whatever it has already decided.
+- **Sidebar:** renders `NavSection[]` config (`components/layout/nav.ts` per app — only lists routes that actually exist), derives the active item from `usePathname()` (not click state, so deep links highlight correctly), and owns its own desktop collapse/expand state (persisted to `localStorage`, read after mount to avoid a hydration mismatch). Mobile open/close state is owned by `<Portal>Layout` and passed down to both Header (hamburger button) and Sidebar (off-canvas drawer + overlay), since both need to agree on it.
+- **Per-portal shape:** Hospital and Owner portals get a real sidebar (2 nav items each today). The Patient Portal currently has only one protected route, so `PatientLayout` renders a header-only shell — no forced sidebar just for consistency's sake.
+- **Nav filtering is presentation only.** Any hide/show decision a Layout makes based on session data (e.g. hospital admin vs. staff) is cosmetic — it changes nothing about what the backend will actually allow; `requirePermission`/`requirePortal` are still the only real boundary.
+
 ## Server-side authorization & data isolation — **Live** (principle, enforced today for what exists)
 
 - Nothing permission-sensitive is decided from JWT claims alone; every hospital-context decision re-queries the database, including permission resolution (`resolvePermissions`).

@@ -34,7 +34,7 @@ These are documented so direction is clear, not because they're designed or sche
 - **Vitals capture.** Structured storage and capture of patient vitals data. Not designed yet.
 - **Digital Twin / continuous monitoring vision.** A longer-horizon idea: a patient-specific model built from ongoing vitals/data, supporting monitoring and visualization (potentially including things like a 3D heart view). Directional only — no architecture committed.
 - **AI/ML-driven features:** insights, alerting, and RAG-based tooling over patient/hospital data. Directional only.
-- **Portal dashboards.** All three portals currently have bare-bones status pages (backend health, logged-in-as, and the Owner's Hospitals list). Real dashboards come later, after the authorization foundation and core data model exist.
+- **Portal dashboards.** All three portals currently have bare-bones status pages (backend health, logged-in-as, and the Owner's Hospitals list), now rendered inside each portal's shared header/sidebar shell and fully styled with the Tailwind-based UI system (see ARCHITECTURE.md and DESIGN.md) — no raw/unstyled HTML remains anywhere. Real dashboard *content* (patient data, vitals, alerts) comes later, after the core data model exists — this pass was presentation only.
 
 ## Explicit non-goals (for now)
 

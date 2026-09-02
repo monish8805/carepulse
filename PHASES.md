@@ -18,9 +18,11 @@ Order matters: the authorization foundation comes before any hospital-operations
 
 ## Phase 2 — Hospital Operations Core (next)
 
+- **Shared portal shell/navigation foundation ✅ Done.** Each frontend now has a portal-specific `<Portal>Layout` (Header, and a Sidebar for Hospital/Owner) wrapping every protected route via an `app/(portal)/` route group. See ARCHITECTURE.md and DESIGN.md.
+- **UI/UX polish pass on all existing pages ✅ Done.** Tailwind CSS v4 installed in all three frontends; the shell and every existing page (auth pages, hospital creation, AccessRole management, staff access-request review, hospital switching) rewritten onto a small shared `components/ui/` primitive set — no more raw/unstyled HTML anywhere. Existing functionality (auth, logout, hospital switching, hospital creation, AccessRole creation, access requests, approval/rejection, RBAC, portal isolation) unchanged — this was a presentation-only pass. See DESIGN.md for the full system. Page *content* is still placeholder in the sense that no new dashboard/clinical data exists yet — what changed is that the pages that *do* exist now look like a real product instead of a functional prototype.
 - Round out `AccessRole` management: edit a role's permissions, activate/deactivate a role. (Create + list, and assigning a role during approval, already exist.)
 - Let a rejected staff member re-request access, and let an admin change an already-active staff member's `AccessRole`.
-- Basic per-portal dashboards (currently all three portals are bare status pages; the Hospital Portal now also needs a minimal way to submit/view a request and for an admin to review one — see DESIGN.md placeholder).
+- Basic per-portal dashboards (currently all three portals are bare status pages, now properly styled inside the shell; the Hospital Portal now also needs a minimal way to submit/view a request and for an admin to review one — the Access & Roles page already covers this at a basic level).
 
 ## Phase 3 — Patient Data & Consent
 

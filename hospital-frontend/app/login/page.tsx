@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { login } from "@/lib/api";
+import { Alert, Button, Card, TextField } from "@/components/ui";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,38 +28,54 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif", maxWidth: 400 }}>
-      <h1>Hospital Login</h1>
-      <form onSubmit={handleSubmit}>
-        <input
-          placeholder="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <br />
-        <input
-          placeholder="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <br />
-        <button type="submit" disabled={loading}>
-          {loading ? "Logging in..." : "Log in"}
-        </button>
-      </form>
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 dark:bg-slate-950">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 text-center">
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">CarePulse</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Hospital Portal — Log in</p>
+        </div>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+        <Card>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <TextField
+              label="Email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <TextField
+              label="Password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
 
-      <p>
-        <Link href="/forgot-password">Forgot password?</Link>
-      </p>
-      <p>
-        No account? <Link href="/register">Register</Link>
-      </p>
+            {error && <Alert variant="error">{error}</Alert>}
+
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? "Logging in..." : "Log in"}
+            </Button>
+          </form>
+
+          <div className="mt-4 space-y-1 text-center text-sm">
+            <p>
+              <Link href="/forgot-password" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+                Forgot password?
+              </Link>
+            </p>
+            <p className="text-slate-500 dark:text-slate-400">
+              No account?{" "}
+              <Link href="/register" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+                Register
+              </Link>
+            </p>
+          </div>
+        </Card>
+      </div>
     </main>
   );
 }
