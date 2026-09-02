@@ -17,6 +17,9 @@ export default function Home() {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [memberships, setMemberships] = useState<HospitalMembership[] | null>(null);
   const [error, setError] = useState("");
+  // Distinct from `user === null` (confirmed logged out) — avoids a flash of
+  // "Log in / Register" before the session-restore sequence has finished.
+  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
     getBackendHealth().then(setBackendUp);
@@ -24,25 +27,34 @@ export default function Home() {
   }, []);
 
   async function loadSession() {
-    // The access token only lives in memory, so every page load needs to trade
-    // the HttpOnly refresh cookie for a new one before we know who's logged in.
-    const restored = await restoreSession();
-    if (!restored) {
-      setUser(null);
-      return;
+    try {
+      // The access token only lives in memory, so every page load needs to trade
+      // the HttpOnly refresh cookie for a new one before we know who's logged in.
+      const restored = await restoreSession();
+      if (!restored) {
+        setUser(null);
+        return;
+      }
+
+      const me = await getMe();
+      const list = await listHospitalMemberships();
+      setMemberships(list);
+
+      // If there's exactly one hospital and none is selected yet, pick it automatically.
+      if (!me.hospital && list.length === 1) {
+        await handleSelectHospital(list[0].hospitalId);
+        return;
+      }
+
+      setUser(me);
+    } catch (err) {
+      // A logged-in session exists (restoreSession succeeded) but a later
+      // call failed — show that clearly rather than silently looking logged
+      // out with no explanation.
+      setError(err instanceof Error ? err.message : "Could not load your session. Try refreshing.");
+    } finally {
+      setCheckingSession(false);
     }
-
-    const me = await getMe();
-    const list = await listHospitalMemberships();
-    setMemberships(list);
-
-    // If there's exactly one hospital and none is selected yet, pick it automatically.
-    if (!me.hospital && list.length === 1) {
-      await handleSelectHospital(list[0].hospitalId);
-      return;
-    }
-
-    setUser(me);
   }
 
   async function handleSelectHospital(hospitalId: string) {
@@ -67,8 +79,11 @@ export default function Home() {
     <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
       <h1>CarePulse — Hospital</h1>
       <p>Backend status: {backendUp === null ? "checking..." : backendUp ? "connected" : "not connected"}</p>
+      {error && <p style={{ color: "red" }}>{error}</p>}
 
-      {user ? (
+      {checkingSession ? (
+        <p>Loading...</p>
+      ) : user ? (
         <>
           <p>
             Logged in as {user.name} ({user.email})
@@ -76,7 +91,8 @@ export default function Home() {
 
           {user.hospital && (
             <p>
-              Current hospital: <strong>{user.hospital.name}</strong> — role: {user.hospital.role}
+              Current hospital: <strong>{user.hospital.name}</strong> — role: {user.hospital.role} — id:{" "}
+              <code>{user.hospital.id}</code>
             </p>
           )}
 
@@ -84,21 +100,28 @@ export default function Home() {
             <div>
               <p>Your hospitals:</p>
               {memberships.map((m) => (
-                <button
-                  key={m.hospitalId}
-                  onClick={() => handleSelectHospital(m.hospitalId)}
-                  disabled={m.hospitalId === user.hospital?.id}
-                  style={{ marginRight: "0.5rem" }}
-                >
-                  {m.hospitalName} ({m.role})
-                </button>
+                <p key={m.hospitalId} style={{ margin: "0.25rem 0" }}>
+                  <button
+                    onClick={() => handleSelectHospital(m.hospitalId)}
+                    disabled={m.hospitalId === user.hospital?.id}
+                    style={{ marginRight: "0.5rem" }}
+                  >
+                    {m.hospitalName} ({m.role})
+                  </button>
+                  <code>{m.hospitalId}</code>
+                </p>
               ))}
             </div>
           ) : memberships ? (
-            <p>You don&apos;t have access to any hospital yet.</p>
+            <div style={{ padding: "1rem", border: "1px solid #ccc", borderRadius: "4px", maxWidth: "24rem" }}>
+              <p>You don&apos;t belong to a hospital yet.</p>
+              <Link href="/access">Join a hospital →</Link>
+            </div>
           ) : null}
 
-          {error && <p style={{ color: "red" }}>{error}</p>}
+          <p>
+            <Link href="/access">Access &amp; Roles</Link>
+          </p>
 
           <p>
             <button onClick={handleLogout}>Log out</button>

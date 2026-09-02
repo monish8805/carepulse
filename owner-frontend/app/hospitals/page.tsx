@@ -20,15 +20,22 @@ export default function HospitalsPage() {
   }, []);
 
   async function load() {
-    // Restores the session in case this page was reached by a fresh page load
-    // (the access token only lives in memory, so it wouldn't survive that).
-    const user = await restoreSession();
-    if (!user) {
-      setLoggedIn(false);
-      return;
+    try {
+      // Restores the session in case this page was reached by a fresh page load
+      // (the access token only lives in memory, so it wouldn't survive that).
+      const user = await restoreSession();
+      if (!user) {
+        setLoggedIn(false);
+        return;
+      }
+      setHospitals(await listHospitals());
+      setLoggedIn(true);
+    } catch (err) {
+      // A logged-in session exists but loading hospitals failed — show that
+      // clearly rather than silently leaving the list empty with no explanation.
+      setLoggedIn(true);
+      setError(err instanceof Error ? err.message : "Could not load hospitals. Try refreshing.");
     }
-    setLoggedIn(true);
-    setHospitals(await listHospitals());
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -115,7 +122,9 @@ export default function HospitalsPage() {
       ) : (
         <ul>
           {hospitals.map((h) => (
-            <li key={h.id}>{h.name}</li>
+            <li key={h.id}>
+              {h.name} — <code>{h.id}</code>
+            </li>
           ))}
         </ul>
       )}

@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import mongoose from "mongoose";
 import { corsOptions } from "./config/cors";
 import healthRoutes from "./routes/health.routes";
 import authRoutes from "./routes/auth.routes";
@@ -24,6 +25,14 @@ app.use("/api/owner", ownerRoutes);
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof HttpError) {
     res.status(err.statusCode).json({ message: err.message });
+    return;
+  }
+  // A malformed id (not a valid ObjectId, e.g. from a bad frontend link or a
+  // client just poking at the API) throws Mongoose's CastError from any
+  // findById/findOne({_id}) — catch it here, once, rather than validating id
+  // format in every route that takes one.
+  if (err instanceof mongoose.Error.CastError) {
+    res.status(400).json({ message: "Invalid ID format." });
     return;
   }
   console.error(err);

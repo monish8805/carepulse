@@ -5,6 +5,9 @@ import type {
   HospitalMembership,
   Hospital,
   CreateHospitalResult,
+  AccessRole,
+  AccessRequest,
+  MyAccessRequest,
   Role,
 } from "./types";
 
@@ -85,23 +88,40 @@ export function resetPassword(
   });
 }
 
+// The refresh token rotates on every use, so two concurrent callers presenting
+// the same cookie would race: the first rotates it, the second's rotation then
+// fails with a 401 because that token is already gone. This happens in practice
+// because React Strict Mode double-invokes effects in dev, and could also happen
+// from two components independently calling restoreSession() on the same load.
+// Sharing one in-flight promise means concurrent callers await the same actual
+// network call instead of each firing their own.
+let refreshInFlight: Promise<AuthUser | null> | null = null;
+
 // Call this once when the app loads: it trades the HttpOnly refresh cookie for a
 // fresh access token, restoring the session after a page reload. Returns null
 // (rather than throwing) when there's no valid session, since that's the normal
 // "not logged in" case, not an error. `portal` must match the portal used at
 // login — each portal has its own separately-named refresh cookie.
-export async function restoreSession(baseUrl: string, portal: Role): Promise<AuthUser | null> {
-  try {
-    const data = await apiFetch<{ accessToken: string; user: AuthUser }>(baseUrl, "/api/auth/refresh", {
-      method: "POST",
-      body: JSON.stringify({ portal }),
+export function restoreSession(baseUrl: string, portal: Role): Promise<AuthUser | null> {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = apiFetch<{ accessToken: string; user: AuthUser }>(baseUrl, "/api/auth/refresh", {
+    method: "POST",
+    body: JSON.stringify({ portal }),
+  })
+    .then((data) => {
+      accessToken = data.accessToken;
+      return data.user;
+    })
+    .catch(() => {
+      accessToken = null;
+      return null;
+    })
+    .finally(() => {
+      refreshInFlight = null;
     });
-    accessToken = data.accessToken;
-    return data.user;
-  } catch {
-    accessToken = null;
-    return null;
-  }
+
+  return refreshInFlight;
 }
 
 export async function logout(baseUrl: string, portal: Role): Promise<void> {
@@ -127,6 +147,13 @@ export async function listHospitalMemberships(baseUrl: string): Promise<Hospital
   return data.memberships;
 }
 
+// Directory of every hospital, for someone deciding which one to request
+// access to — not scoped to the caller's own memberships.
+export async function listAllHospitals(baseUrl: string): Promise<Hospital[]> {
+  const data = await apiFetch<{ hospitals: Hospital[] }>(baseUrl, "/api/hospital/hospitals");
+  return data.hospitals;
+}
+
 // Switches the session's current hospital context. The backend re-verifies
 // membership server-side — this call can fail even if the hospitalId came from
 // a list this same session fetched moments ago (e.g. access was just revoked).
@@ -138,6 +165,54 @@ export async function selectHospital(baseUrl: string, hospitalId: string): Promi
   );
   accessToken = data.accessToken;
   return data.hospital;
+}
+
+// Hospital Portal only, below this point: AccessRoles and staff access requests.
+// Both are admin-only for the "manage" half, gated server-side — the frontend
+// only chooses whether to show these sections, never enforces the restriction.
+
+export async function listAccessRoles(baseUrl: string): Promise<AccessRole[]> {
+  const data = await apiFetch<{ accessRoles: AccessRole[] }>(baseUrl, "/api/hospital/access-roles");
+  return data.accessRoles;
+}
+
+export function createAccessRole(
+  baseUrl: string,
+  input: { name: string; permissions: string[] }
+): Promise<{ accessRole: AccessRole }> {
+  return apiFetch(baseUrl, "/api/hospital/access-roles", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function requestHospitalAccess(baseUrl: string, hospitalId: string) {
+  return apiFetch<{ message: string; request: { id: string; status: string } }>(
+    baseUrl,
+    "/api/hospital/access-requests",
+    { method: "POST", body: JSON.stringify({ hospitalId }) }
+  );
+}
+
+export async function listMyAccessRequests(baseUrl: string): Promise<MyAccessRequest[]> {
+  const data = await apiFetch<{ requests: MyAccessRequest[] }>(baseUrl, "/api/hospital/access-requests/mine");
+  return data.requests;
+}
+
+export async function listPendingAccessRequests(baseUrl: string): Promise<AccessRequest[]> {
+  const data = await apiFetch<{ requests: AccessRequest[] }>(baseUrl, "/api/hospital/access-requests");
+  return data.requests;
+}
+
+export function approveAccessRequest(baseUrl: string, requestId: string, accessRoleId: string) {
+  return apiFetch(baseUrl, `/api/hospital/access-requests/${requestId}/approve`, {
+    method: "POST",
+    body: JSON.stringify({ accessRoleId }),
+  });
+}
+
+export function rejectAccessRequest(baseUrl: string, requestId: string) {
+  return apiFetch(baseUrl, `/api/hospital/access-requests/${requestId}/reject`, { method: "POST" });
 }
 
 // Owner Portal only, below this point.

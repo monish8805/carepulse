@@ -7,6 +7,7 @@ import { UserModel } from "../models/user.model";
 import { HospitalModel } from "../models/hospital.model";
 import { HospitalMembershipModel } from "../models/hospitalMembership.model";
 import * as hospitalService from "../domain/hospital.service";
+import { hashValue } from "../utils/hash";
 
 const OWNER_EMAIL = "monureddig@gmail.com";
 const OWNER_PASSWORD = "123456";
@@ -15,8 +16,14 @@ const TEST_HOSPITAL_NAME = `Vitest Hospital ${Date.now()}`;
 const TEST_ADMIN_NAME = "Vitest Admin";
 const TEST_ADMIN_EMAIL = `vitest.admin.${Date.now()}@example.com`;
 
+// A self-contained, already-verified patient — used only to prove a non-owner
+// portal is rejected. Created here rather than depending on a pre-existing
+// account, since external fixture state isn't reproducible across test runs.
+const NON_OWNER_EMAIL = `vitest.patient.${Date.now()}@example.com`;
+const NON_OWNER_PASSWORD = "PatientPass1!";
+
 const cleanupHospitalIds: string[] = [];
-const cleanupUserEmails: string[] = [TEST_ADMIN_EMAIL];
+const cleanupUserEmails: string[] = [TEST_ADMIN_EMAIL, NON_OWNER_EMAIL];
 
 async function loginAs(email: string, password: string, role: string): Promise<string> {
   const res = await request(app).post("/api/auth/login").send({ email, password, role });
@@ -26,6 +33,13 @@ async function loginAs(email: string, password: string, role: string): Promise<s
 
 beforeAll(async () => {
   await connectToDatabase();
+  await UserModel.create({
+    name: "Vitest Patient",
+    email: NON_OWNER_EMAIL,
+    passwordHash: await hashValue(NON_OWNER_PASSWORD),
+    roles: ["patient"],
+    isVerified: true,
+  });
 });
 
 afterAll(async () => {
@@ -44,7 +58,7 @@ describe("Owner -> Hospital -> Hospital Administrator provisioning", () => {
   });
 
   it("rejects hospital creation from a non-owner portal", async () => {
-    const patientToken = await loginAs("patient.test@example.com", "AnotherPass1!", "patient");
+    const patientToken = await loginAs(NON_OWNER_EMAIL, NON_OWNER_PASSWORD, "patient");
 
     const res = await request(app)
       .post("/api/owner/hospitals")

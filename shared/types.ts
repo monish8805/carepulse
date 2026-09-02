@@ -27,6 +27,45 @@ export interface HospitalMembership {
   role: string;
 }
 
+// Mirrors backend/config/permissions.ts. Kept here (not imported from the
+// backend) since frontend and backend are separate builds — if the backend
+// catalogue changes, update this list too.
+export const PERMISSIONS = [
+  "patient.view",
+  "vitals.view",
+  "alerts.view",
+  "alerts.acknowledge",
+  "staff.view",
+  "staff.manage",
+] as const;
+
+export interface AccessRole {
+  id: string;
+  name: string;
+  permissions: string[];
+  isActive: boolean;
+}
+
+// A pending/active/rejected request for the CURRENT admin's hospital, as seen
+// by an administrator reviewing it.
+export interface AccessRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  status: string;
+  createdAt: string;
+}
+
+// One of the caller's own requests, across any hospital, any status.
+export interface MyAccessRequest {
+  id: string;
+  hospitalId: string;
+  hospitalName: string;
+  role: string;
+  status: string;
+}
+
 // Owner Portal only, below this point.
 
 export interface Hospital {

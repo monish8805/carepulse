@@ -51,6 +51,38 @@ export function listHospitalMemberships() {
   return sharedApi.listHospitalMemberships(BACKEND_URL);
 }
 
+export function listAllHospitals() {
+  return sharedApi.listAllHospitals(BACKEND_URL);
+}
+
 export function selectHospital(hospitalId: string) {
   return sharedApi.selectHospital(BACKEND_URL, hospitalId);
+}
+
+export function listAccessRoles() {
+  return sharedApi.listAccessRoles(BACKEND_URL);
+}
+
+export function createAccessRole(input: { name: string; permissions: string[] }) {
+  return sharedApi.createAccessRole(BACKEND_URL, input);
+}
+
+export function requestHospitalAccess(hospitalId: string) {
+  return sharedApi.requestHospitalAccess(BACKEND_URL, hospitalId);
+}
+
+export function listMyAccessRequests() {
+  return sharedApi.listMyAccessRequests(BACKEND_URL);
+}
+
+export function listPendingAccessRequests() {
+  return sharedApi.listPendingAccessRequests(BACKEND_URL);
+}
+
+export function approveAccessRequest(requestId: string, accessRoleId: string) {
+  return sharedApi.approveAccessRequest(BACKEND_URL, requestId, accessRoleId);
+}
+
+export function rejectAccessRequest(requestId: string) {
+  return sharedApi.rejectAccessRequest(BACKEND_URL, requestId);
 }

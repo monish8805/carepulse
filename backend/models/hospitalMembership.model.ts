@@ -14,6 +14,12 @@ const hospitalMembershipSchema = new Schema(
     hospitalId: { type: Schema.Types.ObjectId, ref: "Hospital", required: true },
     role: { type: String, enum: HOSPITAL_MEMBERSHIP_ROLES, required: true },
     status: { type: String, enum: HOSPITAL_MEMBERSHIP_STATUSES, default: "pending" },
+    // Optional: which dynamic AccessRole this membership currently holds within
+    // this hospital. Admin memberships typically have none — hospital-management
+    // authority comes from role: "admin" above, not from an AccessRole. Staff
+    // permissions are resolved from this, fresh from the database, on every
+    // request (see domain/permission.service.ts) — never cached, never in the JWT.
+    accessRoleId: { type: Schema.Types.ObjectId, ref: "AccessRole" },
   },
   { timestamps: true }
 );
