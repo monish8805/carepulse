@@ -8,3 +8,11 @@ export function validateCreateAccessRole(req: Request, _res: Response, next: Nex
   }
   next();
 }
+
+export function validateUpdateAccessRole(req: Request, _res: Response, next: NextFunction) {
+  const { permissions } = req.body;
+  if (!Array.isArray(permissions)) {
+    return next(new HttpError(400, "permissions[] is required."));
+  }
+  next();
+}

@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation";
 import type { AuthUser } from "@shared/types";
 import { restoreSession, logout } from "@/lib/api";
 import Header from "./Header";
+import type { AccountMenuItem } from "./AccountMenu";
+
+// Account/personal actions — not hospital-application navigation, kept out of
+// the Sidebar (see DESIGN.md's account-nav vs. hospital-nav split). Profile
+// /Settings have no page yet, so they render disabled with a "Coming soon"
+// hint rather than linking somewhere that doesn't exist.
+const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
+  { label: "Profile", disabled: true, hint: "Coming soon" },
+  { label: "Settings", disabled: true, hint: "Coming soon" },
+];
 
 // Owns the application shell (header only — no sidebar yet, see layout.css)
 // for every route under app/(portal)/. Deliberately does its own lightweight
@@ -53,6 +63,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
         title="CarePulse — Patient"
         userName={user.name}
         userEmail={user.email}
+        accountMenuItems={ACCOUNT_MENU_ITEMS}
         onLogout={handleLogout}
         showMenuButton={false}
         mobileMenuOpen={false}

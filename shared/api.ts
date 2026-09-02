@@ -8,6 +8,7 @@ import type {
   AccessRole,
   AccessRequest,
   MyAccessRequest,
+  StaffMember,
   Role,
 } from "./types";
 
@@ -186,6 +187,21 @@ export function createAccessRole(
   });
 }
 
+export function updateAccessRole(
+  baseUrl: string,
+  roleId: string,
+  permissions: string[]
+): Promise<{ accessRole: AccessRole }> {
+  return apiFetch(baseUrl, `/api/hospital/access-roles/${roleId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ permissions }),
+  });
+}
+
+export function deleteAccessRole(baseUrl: string, roleId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/hospital/access-roles/${roleId}`, { method: "DELETE" });
+}
+
 export function requestHospitalAccess(baseUrl: string, hospitalId: string) {
   return apiFetch<{ message: string; request: { id: string; status: string } }>(
     baseUrl,
@@ -213,6 +229,18 @@ export function approveAccessRequest(baseUrl: string, requestId: string, accessR
 
 export function rejectAccessRequest(baseUrl: string, requestId: string) {
   return apiFetch(baseUrl, `/api/hospital/access-requests/${requestId}/reject`, { method: "POST" });
+}
+
+// Staff management: already-active members, distinct from the pending
+// requests above. Visible/usable by an admin or a staff member whose current
+// AccessRole includes staff.manage (see HospitalContext.canManageStaff).
+export async function listStaff(baseUrl: string): Promise<StaffMember[]> {
+  const data = await apiFetch<{ staff: StaffMember[] }>(baseUrl, "/api/hospital/staff");
+  return data.staff;
+}
+
+export function removeStaffMember(baseUrl: string, membershipId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/hospital/staff/${membershipId}`, { method: "DELETE" });
 }
 
 // Owner Portal only, below this point.

@@ -6,7 +6,17 @@ import type { AuthUser } from "@shared/types";
 import { restoreSession, logout } from "@/lib/api";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
+import type { AccountMenuItem } from "./AccountMenu";
 import { OWNER_NAV_SECTIONS } from "./nav";
+
+// Account/personal actions — not hospital/owner-application navigation, so
+// kept out of the Sidebar (see DESIGN.md's account-nav vs. hospital-nav
+// split). Profile/Settings have no page yet, so they render disabled with a
+// "Coming soon" hint rather than linking somewhere that doesn't exist.
+const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
+  { label: "Profile", disabled: true, hint: "Coming soon" },
+  { label: "Settings", disabled: true, hint: "Coming soon" },
+];
 
 // Owns the application shell (header + sidebar) for every route under
 // app/(portal)/. Deliberately does its own lightweight session check to know
@@ -56,6 +66,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
         title="CarePulse — Owner"
         userName={user.name}
         userEmail={user.email}
+        accountMenuItems={ACCOUNT_MENU_ITEMS}
         onLogout={handleLogout}
         showMenuButton
         mobileMenuOpen={mobileOpen}

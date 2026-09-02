@@ -1,12 +1,13 @@
 "use client";
 
-import Button from "@/components/ui/Button";
+import AccountMenu, { type AccountMenuItem } from "./AccountMenu";
 
 interface HeaderProps {
   title: string;
   subtitle?: string;
-  userName?: string;
+  userName: string;
   userEmail?: string;
+  accountMenuItems: AccountMenuItem[];
   onLogout: () => void;
   showMenuButton: boolean;
   mobileMenuOpen: boolean;
@@ -14,13 +15,15 @@ interface HeaderProps {
 }
 
 // Purely presentational — receives everything it needs as props. The owning
-// Layout decides what the user is allowed to see; this component never
-// resolves permissions or session state itself.
+// Layout decides what the user is allowed to see (including what goes in the
+// account menu); this component never resolves permissions or session state
+// itself.
 export default function Header({
   title,
   subtitle,
   userName,
   userEmail,
+  accountMenuItems,
   onLogout,
   showMenuButton,
   mobileMenuOpen,
@@ -52,16 +55,8 @@ export default function Header({
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
-        {userName && (
-          <span className="hidden truncate text-sm text-slate-600 sm:inline dark:text-slate-300">
-            {userName}
-            {userEmail ? ` · ${userEmail}` : ""}
-          </span>
-        )}
-        <Button variant="secondary" onClick={onLogout}>
-          Log out
-        </Button>
+      <div className="flex shrink-0 items-center">
+        <AccountMenu userName={userName} userEmail={userEmail} items={accountMenuItems} onLogout={onLogout} />
       </div>
     </header>
   );

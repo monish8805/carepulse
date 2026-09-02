@@ -6,6 +6,7 @@ import { hashValue } from "../utils/hash";
 import { generateTemporaryPassword } from "../utils/password";
 import { sendHospitalAdminWelcomeEmail } from "../utils/email";
 import { HttpError } from "../utils/httpError";
+import { resolvePermissions } from "./permission.service";
 
 // Only relevant fields of the populated Hospital document.
 interface PopulatedHospital {
@@ -23,6 +24,18 @@ export interface HospitalContext {
   id: string;
   name: string;
   role: string;
+  // Whether this session may manage staff (list/remove) — true for role:
+  // "admin", or for staff whose current AccessRole includes staff.manage.
+  // Resolved fresh here (same as any other permission check), never cached —
+  // lets the frontend decide whether to show staff-management UI without
+  // duplicating this logic or exposing raw permissions. See domain/staff.service.ts.
+  canManageStaff: boolean;
+}
+
+async function resolveCanManageStaff(userId: string, hospitalId: string, role: string): Promise<boolean> {
+  if (role === "admin") return true;
+  const permissions = await resolvePermissions(userId, hospitalId);
+  return permissions.includes("staff.manage");
 }
 
 export async function listActiveMemberships(userId: string): Promise<HospitalMembershipSummary[]> {
@@ -51,7 +64,13 @@ export async function verifyActiveMembership(userId: string, hospitalId: string)
     throw new HttpError(403, "You do not have access to this hospital.");
   }
 
-  return { id: membership.hospitalId._id.toString(), name: membership.hospitalId.name, role: membership.role };
+  const canManageStaff = await resolveCanManageStaff(userId, hospitalId, membership.role);
+  return {
+    id: membership.hospitalId._id.toString(),
+    name: membership.hospitalId.name,
+    role: membership.role,
+    canManageStaff,
+  };
 }
 
 // Used by GET /me: resolves the hospital context fresh from the database every
@@ -70,7 +89,13 @@ export async function getCurrentHospitalContext(
 
   if (!membership) return null;
 
-  return { id: membership.hospitalId._id.toString(), name: membership.hospitalId.name, role: membership.role };
+  const canManageStaff = await resolveCanManageStaff(userId, hospitalId, membership.role);
+  return {
+    id: membership.hospitalId._id.toString(),
+    name: membership.hospitalId.name,
+    role: membership.role,
+    canManageStaff,
+  };
 }
 
 // --- Owner Portal: hospital + administrator provisioning ---

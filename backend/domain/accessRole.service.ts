@@ -70,3 +70,54 @@ export async function listAccessRoles(userId: string, hospitalId: string): Promi
     isActive: role.isActive,
   }));
 }
+
+// Edits only permissions, not the name — renaming isn't part of the current
+// plan (see PHASES.md) and would need its own uniqueness handling against the
+// (hospital, name) index.
+export async function updateAccessRolePermissions(
+  userId: string,
+  hospitalId: string,
+  roleId: string,
+  permissions: string[]
+): Promise<AccessRoleSummary> {
+  await assertHospitalAdmin(userId, hospitalId);
+  const validated = validatePermissions(permissions ?? []);
+
+  const accessRole = await AccessRoleModel.findOne({ _id: roleId, hospital: hospitalId });
+  if (!accessRole) {
+    throw new HttpError(404, "AccessRole not found.");
+  }
+
+  accessRole.permissions = validated;
+  await accessRole.save();
+
+  return {
+    id: accessRole._id.toString(),
+    name: accessRole.name,
+    permissions: accessRole.permissions as Permission[],
+    isActive: accessRole.isActive,
+  };
+}
+
+// Hard delete, but blocked while any active membership still points at this
+// role — resolvePermissions would otherwise silently resolve those staff to no
+// permissions the moment the role disappeared, with no visible explanation.
+export async function deleteAccessRole(userId: string, hospitalId: string, roleId: string): Promise<void> {
+  await assertHospitalAdmin(userId, hospitalId);
+
+  const accessRole = await AccessRoleModel.findOne({ _id: roleId, hospital: hospitalId });
+  if (!accessRole) {
+    throw new HttpError(404, "AccessRole not found.");
+  }
+
+  const inUse = await HospitalMembershipModel.exists({
+    hospitalId,
+    accessRoleId: accessRole._id,
+    status: "active",
+  });
+  if (inUse) {
+    throw new HttpError(409, "This role is currently assigned to active staff and can't be deleted while in use.");
+  }
+
+  await AccessRoleModel.deleteOne({ _id: accessRole._id });
+}

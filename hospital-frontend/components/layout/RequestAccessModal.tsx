@@ -45,7 +45,15 @@ export default function RequestAccessModal({ open, onClose }: RequestAccessModal
     Promise.all([listAllHospitals(), listMyAccessRequests()])
       .then(([hospitals, myRequests]) => {
         setAllHospitals(hospitals);
-        setRequestedHospitalIds(new Set(myRequests.map((r) => r.hospitalId)));
+        // Mirrors the backend's actual rule (domain/accessRequest.service.ts::
+        // requestAccess): pending/active/rejected block a new request, but a
+        // "removed" one doesn't — the backend reuses that document and revives
+        // it to pending. Excluding "removed" here too would hide a hospital a
+        // former staff member is explicitly allowed to re-request.
+        const blockedStatuses = new Set(["pending", "active", "rejected"]);
+        setRequestedHospitalIds(
+          new Set(myRequests.filter((r) => blockedStatuses.has(r.status)).map((r) => r.hospitalId))
+        );
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Could not load hospitals."))
       .finally(() => setLoading(false));

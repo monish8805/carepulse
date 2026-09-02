@@ -67,6 +67,14 @@ export function createAccessRole(input: { name: string; permissions: string[] })
   return sharedApi.createAccessRole(BACKEND_URL, input);
 }
 
+export function updateAccessRole(roleId: string, permissions: string[]) {
+  return sharedApi.updateAccessRole(BACKEND_URL, roleId, permissions);
+}
+
+export function deleteAccessRole(roleId: string) {
+  return sharedApi.deleteAccessRole(BACKEND_URL, roleId);
+}
+
 export function requestHospitalAccess(hospitalId: string) {
   return sharedApi.requestHospitalAccess(BACKEND_URL, hospitalId);
 }
@@ -85,4 +93,12 @@ export function approveAccessRequest(requestId: string, accessRoleId: string) {
 
 export function rejectAccessRequest(requestId: string) {
   return sharedApi.rejectAccessRequest(BACKEND_URL, requestId);
+}
+
+export function listStaff() {
+  return sharedApi.listStaff(BACKEND_URL);
+}
+
+export function removeStaffMember(membershipId: string) {
+  return sharedApi.removeStaffMember(BACKEND_URL, membershipId);
 }

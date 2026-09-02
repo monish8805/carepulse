@@ -5,7 +5,12 @@ import { Schema, model } from "mongoose";
 export const HOSPITAL_MEMBERSHIP_ROLES = ["admin", "staff"] as const;
 export type HospitalMembershipRole = (typeof HOSPITAL_MEMBERSHIP_ROLES)[number];
 
-export const HOSPITAL_MEMBERSHIP_STATUSES = ["pending", "active", "rejected"] as const;
+// "removed" is reached only from "active", via an admin/staff.manage holder
+// removing a staff member (domain/staff.service.ts::removeStaffMember) — unlike
+// "rejected", it is NOT terminal: requestAccess() lets a removed user submit a
+// fresh request, reusing this same document (the unique userId+hospitalId index
+// allows only one), resetting it back to "pending".
+export const HOSPITAL_MEMBERSHIP_STATUSES = ["pending", "active", "rejected", "removed"] as const;
 export type HospitalMembershipStatus = (typeof HOSPITAL_MEMBERSHIP_STATUSES)[number];
 
 const hospitalMembershipSchema = new Schema(

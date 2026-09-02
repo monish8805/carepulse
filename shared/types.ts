@@ -12,6 +12,11 @@ export interface HospitalContext {
   id: string;
   name: string;
   role: string;
+  // Whether this session may manage staff (list/remove) — true for role:
+  // "admin", or for staff whose current AccessRole includes staff.manage.
+  // Resolved server-side, display/gating only — the backend still enforces
+  // every actual staff-management request independently.
+  canManageStaff: boolean;
 }
 
 // What GET /me returns: scoped to whichever portal the session was authenticated
@@ -64,6 +69,17 @@ export interface MyAccessRequest {
   hospitalName: string;
   role: string;
   status: string;
+}
+
+// An already-active staff member, as seen by someone who can manage staff
+// (an admin, or a staff member whose AccessRole includes staff.manage).
+export interface StaffMember {
+  id: string; // HospitalMembership id
+  userId: string;
+  userName: string;
+  userEmail: string;
+  accessRoleName: string | null;
+  canManageStaff: boolean;
 }
 
 // Owner Portal only, below this point.

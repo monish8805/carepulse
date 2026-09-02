@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as hospitalController from "../controllers/hospital.controller";
 import * as accessRoleController from "../controllers/accessRole.controller";
 import * as accessRequestController from "../controllers/accessRequest.controller";
+import * as staffController from "../controllers/staff.controller";
 import * as validate from "../validators/hospital.validator";
 import * as validateAccessRole from "../validators/accessRole.validator";
 import * as validateAccessRequest from "../validators/accessRequest.validator";
@@ -21,6 +22,19 @@ router.get("/hospitals", hospitalController.getAllHospitals);
 // administrator manages roles by virtue of being the admin, not by holding one.
 router.get("/access-roles", accessRoleController.listAccessRoles);
 router.post("/access-roles", validateAccessRole.validateCreateAccessRole, accessRoleController.createAccessRole);
+router.patch(
+  "/access-roles/:id",
+  validateAccessRole.validateUpdateAccessRole,
+  accessRoleController.updateAccessRole
+);
+router.delete("/access-roles/:id", accessRoleController.deleteAccessRole);
+
+// Staff management: listing/removing already-ACTIVE staff, distinct from the
+// pending-request review below. Admin-gated the same way as access-roles, OR
+// a staff member whose current AccessRole includes staff.manage — see
+// domain/staff.service.ts for the peer-protection rule that applies there.
+router.get("/staff", staffController.listStaff);
+router.delete("/staff/:id", staffController.removeStaffMember);
 
 // Staff access-request lifecycle. Creating a request and checking your own
 // requests need no hospital context (a first-time requester has none yet);

@@ -44,11 +44,21 @@ export async function requestAccess(userId: string, hospitalId: string): Promise
 
   // One membership document per (user, hospital), regardless of status — this
   // is also enforced by the model's unique index; checking first just gives a
-  // clean 409 instead of a raw duplicate-key error. It also means a rejected
-  // request isn't automatically re-requestable — a deliberate scope limit for
-  // this phase (see PRD.md).
+  // clean 409 instead of a raw duplicate-key error. A rejected request isn't
+  // automatically re-requestable — a deliberate scope limit for this phase
+  // (see PRD.md). A *removed* one (a former staff member — see
+  // domain/staff.service.ts::removeStaffMember) is different: they were
+  // active once, so they're allowed to ask again — reusing this same document
+  // (the unique index allows only one) rather than creating a second.
   const existing = await HospitalMembershipModel.findOne({ userId, hospitalId });
   if (existing) {
+    if (existing.status === "removed") {
+      existing.status = "pending";
+      existing.role = "staff";
+      existing.accessRoleId = undefined;
+      await existing.save();
+      return { id: existing._id.toString(), status: existing.status };
+    }
     throw new HttpError(409, "You already have a membership or pending request for this hospital.");
   }
 
