@@ -6,6 +6,8 @@ import type { SessionUser } from "@shared/types";
 import { restoreSession, getMe, logout } from "@/lib/api";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
+import RequestAccessModal from "./RequestAccessModal";
+import type { AccountMenuItem } from "./AccountMenu";
 import { HOSPITAL_NAV_SECTIONS } from "./nav";
 
 // Owns the application shell (header + sidebar) for every route under
@@ -22,6 +24,7 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
   const [user, setUser] = useState<SessionUser | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [requestAccessOpen, setRequestAccessOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +61,16 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
     return <>{children}</>;
   }
 
+  // Account/profile actions, not hospital-application navigation — kept out
+  // of the Sidebar on purpose (see the account-nav vs. hospital-nav split in
+  // DESIGN.md). Profile/Settings have no page yet, so they're shown but
+  // disabled rather than linking somewhere that doesn't exist.
+  const accountMenuItems: AccountMenuItem[] = [
+    { label: "Profile", disabled: true, hint: "Coming soon" },
+    { label: "Request hospital access", onClick: () => setRequestAccessOpen(true) },
+    { label: "Settings", disabled: true, hint: "Coming soon" },
+  ];
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header
@@ -65,6 +78,7 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
         subtitle={user.hospital ? `${user.hospital.name} (${user.hospital.role})` : undefined}
         userName={user.name}
         userEmail={user.email}
+        accountMenuItems={accountMenuItems}
         onLogout={handleLogout}
         showMenuButton
         mobileMenuOpen={mobileOpen}
@@ -79,6 +93,7 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
         />
         <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
       </div>
+      <RequestAccessModal open={requestAccessOpen} onClose={() => setRequestAccessOpen(false)} />
     </div>
   );
 }

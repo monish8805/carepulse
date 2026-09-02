@@ -25,6 +25,7 @@ One small set of presentational components, written once and copied into all thr
 | `EmptyState` | Centered message (+ optional action) for an empty list — replaces bare "No X yet." text. |
 | `LoadingState` | Centered spinner + label — the one loading indicator, used both for full-page and section-level loading. |
 | `Divider` | Plain styled `<hr>`. |
+| `Modal` | Overlay dialog (`role="dialog"`, closes on Escape/overlay click/✕). Hospital Portal only so far (`RequestAccessModal`) — not yet copied to patient/owner since nothing there needs it; copy it over the first time one of those apps does. |
 
 **Keep this list minimal.** Add a new primitive only once a second real page needs the same pattern — don't build ahead of actual usage.
 
@@ -47,8 +48,18 @@ Not a locked brand palette — chosen to be clean/neutral/healthcare-appropriate
 - **Responsive breakpoint:** `md` (768px). Below it, the sidebar becomes an off-canvas drawer (slides in from the left under the header, with a dimmed overlay) instead of a persistent column; the hamburger menu button in the Header only renders on portals that have a sidebar at all.
 - **Auth pages** (`/login`, `/register`, `/forgot-password`) are deliberately outside the shell — centered card on a neutral background (`bg-slate-50 dark:bg-slate-950`), no header/sidebar.
 - **Page content:** every protected page's top-level element is `PageContainer` → `PageHeader` → a `space-y-6` stack of `Card`s. List rows inside a `Card` use `divide-y divide-slate-200 dark:divide-slate-800`.
-- **Global actions live in the shell, not the page.** Logout is only in the Header; "Access & Roles"/"Hospitals" nav is only in the Sidebar — pages that used to render their own duplicate link/button (home pages, pre-shell) no longer do, now that the shell always surrounds them.
+- **Global actions live in the shell, not the page.** Nav to an existing page is only in the Sidebar (or the account menu — see below) — pages don't render their own duplicate link/button now that the shell always surrounds them.
 - **Dashboards** — per-portal dashboard *content* (patient/hospital/owner) still not built (Phase 2+). Every existing page (status pages, hospital creation, AccessRole/access-request management) is now fully styled; what's still a placeholder is *new* clinical/monitoring content, not the pages that already exist.
+
+## Account navigation vs. hospital navigation — Live (Hospital Portal)
+
+Two distinct, deliberately separate navigation surfaces in the Header, so the Sidebar stays scoped to one thing:
+
+- **Sidebar — hospital-application navigation.** Routes for *doing hospital work*: today, Home and Access & Roles (staff/role management). Config-driven via `components/layout/nav.ts`. Never put a personal/account action here.
+- **Account menu (top-right of the Header, `AccountMenu.tsx`) — personal/account actions**, not hospital-application pages: `Profile`, `Request hospital access`, `Settings`, then a divider, then `Log out`. `Profile`/`Settings` have no page yet — they render disabled with a "Coming soon" hint rather than linking somewhere that doesn't exist; don't wire them up until those pages are actually built. `Request hospital access` opens `RequestAccessModal` (a self-contained dialog with its own data-fetching and form state) rather than navigating anywhere, specifically so it stays reachable from every page via the Header instead of needing its own route.
+- **Why this split:** "which hospital am I acting within, and what can I do there" (Sidebar) is a different question from "what does this account itself want to do, regardless of hospital" (account menu). Requesting access to a *new* hospital is the second kind of action — it's about the account, not about the hospital currently selected — which is why it moved out of the `/access` page's sidebar-reachable content into the account menu.
+- **`AccessPage` (`/access`) itself is now grouped to match:** "My requests" (tracking status of your own requests — what's left on this page from the access-request flow now that the request *action* lives in the account menu) sits above a "Hospital administration" section heading that groups the admin-only `Roles & Permissions` and `Staff` cards (renamed from "Access Roles"/"Pending staff requests" to match this framing) — both gated on `user.hospital?.role === "admin"`, unchanged from before.
+- **`AccountMenu` is a reusable primitive**, not Hospital-Portal-specific by construction (`components/layout/AccountMenu.tsx`, props: `userName`, `userEmail`, `items: AccountMenuItem[]`, `onLogout`) — keyboard accessible (arrow keys move focus between enabled items, Escape closes and returns focus to the trigger, Tab closes), closes on outside click and on route change, responsive (name label hidden below `sm`, panel is a fixed-width `w-60` right-aligned popover). Only wired into the Hospital Portal's `Header.tsx` so far; copy the pattern to patient/owner only once one of them actually needs an account menu.
 
 ## Forms — Live
 
