@@ -190,6 +190,10 @@ export default function AccessPage() {
       await approveAccessRequest(requestId, accessRoleId);
       setMessage("Request approved.");
       setPendingRequests(await listPendingAccessRequests());
+      // The newly-active member should show up in the Staff card without a
+      // reload — approving only happens from the admin-gated Pending
+      // requests card, so canManageStaff is already true here.
+      setStaff(await listStaff());
     } catch (err) {
       showError(err);
     }

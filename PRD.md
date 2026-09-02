@@ -15,7 +15,7 @@ CarePulse is a healthcare platform connecting three kinds of users through three
 ## Current scope (built)
 
 - **One shared `User` identity.** `roles` (patient/hospital/owner) are additive, not mutually exclusive.
-- **Registration & verification:** patient/hospital self-registration with email OTP verification (Brevo, with a console-log fallback for local dev). Owner accounts are never self-registered.
+- **Registration & verification:** patient/hospital self-registration (name, email, phone, password) with email OTP verification (Brevo, with a console-log fallback for local dev), presented as a 3-step flow (Details → Password → Verify). Owner accounts are never self-registered, and never collect a phone number — that's specific to the self-registration flow.
 - **Auth:** login, logout, forgot/reset password. See ARCHITECTURE.md for the token model.
 - **Portal isolation:** a session authenticated through one portal cannot see or act on data belonging to another portal, even for a multi-role user.
 - **Hospitals as organizations:** an Owner creates a `Hospital` and provisions its first Hospital Administrator in one step. The administrator receives temporary credentials by email and is expected to change their password (existing forgot-password flow).

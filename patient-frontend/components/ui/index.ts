@@ -14,4 +14,5 @@ export { default as LoadingState } from "./LoadingState";
 export { default as PageContainer } from "./PageContainer";
 export { default as PageHeader } from "./PageHeader";
 export { default as SectionHeading } from "./SectionHeading";
+export { default as Stepper } from "./Stepper";
 export { default as TextField } from "./TextField";

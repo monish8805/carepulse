@@ -54,22 +54,27 @@ export async function listStaff(actingUserId: string, hospitalId: string): Promi
     hospitalId,
     role: "staff",
     status: "active",
-  }).populate<{ userId: PopulatedUser }>("userId");
+  }).populate<{ userId: PopulatedUser | null }>("userId");
 
   const roles = await AccessRoleModel.find({ hospital: hospitalId, isActive: true });
   const roleById = new Map(roles.map((role) => [role._id.toString(), role]));
 
-  return memberships.map((membership) => {
+  // A dangling reference (the User no longer exists) is defensive-only — no
+  // User deletion path exists today — but skip it rather than throw.
+  return memberships.flatMap((membership) => {
+    if (!membership.userId) return [];
     const role = membership.accessRoleId ? roleById.get(membership.accessRoleId.toString()) : undefined;
     const permissions = (role?.permissions ?? []) as Permission[];
-    return {
-      id: membership._id.toString(),
-      userId: membership.userId._id.toString(),
-      userName: membership.userId.name,
-      userEmail: membership.userId.email,
-      accessRoleName: role ? role.name : null,
-      canManageStaff: permissions.includes("staff.manage"),
-    };
+    return [
+      {
+        id: membership._id.toString(),
+        userId: membership.userId._id.toString(),
+        userName: membership.userId.name,
+        userEmail: membership.userId.email,
+        accessRoleName: role ? role.name : null,
+        canManageStaff: permissions.includes("staff.manage"),
+      },
+    ];
   });
 }
 

@@ -154,15 +154,21 @@ async function issueTokens(
   return { accessToken, refreshToken };
 }
 
-export async function registerUser(input: { name: string; email: string; password: string; role: Role }) {
-  const { name, password, role } = input;
+export async function registerUser(input: {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  role: Role;
+}) {
+  const { name, phone, password, role } = input;
   const normalizedEmail = input.email.toLowerCase().trim();
   const existingUser = await UserModel.findOne({ email: normalizedEmail });
 
   if (!existingUser) {
     // Brand new account. Not verified yet, so it can't log in until the OTP is confirmed.
     const passwordHash = await hashValue(password);
-    const user = await UserModel.create({ name, email: normalizedEmail, passwordHash, roles: [role] });
+    const user = await UserModel.create({ name, email: normalizedEmail, phone, passwordHash, roles: [role] });
     await setRegisterOtp(user._id.toString(), role);
     return { message: "Registered. Check your email for the verification code." };
   }

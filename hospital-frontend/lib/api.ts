@@ -13,7 +13,7 @@ export async function getBackendHealth(): Promise<boolean> {
   }
 }
 
-export function register(input: { name: string; email: string; password: string }) {
+export function register(input: { name: string; email: string; phone: string; password: string }) {
   return sharedApi.registerAccount(BACKEND_URL, { ...input, role: ROLE });
 }
 

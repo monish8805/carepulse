@@ -9,6 +9,13 @@ export const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "http://localhost
   .split(",")
   .map((origin) => origin.trim());
 
+// Fails fast in production rather than silently signing every access token
+// with a hardcoded, publicly-known string — the dev fallback below is only
+// safe because it's dev-only.
+if (IS_PRODUCTION && !process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET must be set in production — refusing to start with the development fallback.");
+}
+
 export const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
 export const BREVO_API_KEY = process.env.BREVO_API_KEY;

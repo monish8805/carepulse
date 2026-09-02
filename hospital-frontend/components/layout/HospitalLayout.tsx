@@ -52,9 +52,18 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
   }, []);
 
   async function handleLogout() {
-    await logout();
-    setUser(null);
-    router.push("/login");
+    try {
+      await logout();
+    } catch {
+      // Logout must always succeed from the user's perspective client-side —
+      // the in-memory access token is already cleared by shared/api.ts's
+      // logout() regardless of whether the network call succeeded, so the
+      // session is dead either way. Swallow the error rather than leaving an
+      // unhandled rejection and a stuck "still logged in" shell.
+    } finally {
+      setUser(null);
+      router.push("/login");
+    }
   }
 
   if (checkingSession || !user) {

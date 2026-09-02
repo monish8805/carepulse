@@ -8,9 +8,9 @@ const REGISTERABLE_ROLES = ["patient", "hospital"];
 // already exist, is the password correct, etc.) live in domain/auth.service.ts.
 
 export function validateRegister(req: Request, _res: Response, next: NextFunction) {
-  const { name, email, password, role } = req.body;
-  if (!name || !email || !password || !role) {
-    return next(new HttpError(400, "name, email, password and role are required."));
+  const { name, email, phone, password, role } = req.body;
+  if (!name || !email || !phone || !password || !role) {
+    return next(new HttpError(400, "name, email, phone, password and role are required."));
   }
   if (!REGISTERABLE_ROLES.includes(role)) {
     return next(new HttpError(400, "role must be 'patient' or 'hospital'."));

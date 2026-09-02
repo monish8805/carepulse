@@ -76,33 +76,47 @@ export async function requestAccess(userId: string, hospitalId: string): Promise
 // staff sees "pending"/"rejected" without yet having a selectable hospital context.
 export async function listMyRequests(userId: string): Promise<MyAccessRequestSummary[]> {
   const memberships = await HospitalMembershipModel.find({ userId }).populate<{
-    hospitalId: PopulatedHospital;
+    hospitalId: PopulatedHospital | null;
   }>("hospitalId");
 
-  return memberships.map((membership) => ({
-    id: membership._id.toString(),
-    hospitalId: membership.hospitalId._id.toString(),
-    hospitalName: membership.hospitalId.name,
-    role: membership.role,
-    status: membership.status,
-  }));
+  // A dangling reference (the Hospital no longer exists) is defensive-only —
+  // no Hospital deletion path exists today — but skip it rather than throw.
+  return memberships.flatMap((membership) => {
+    if (!membership.hospitalId) return [];
+    return [
+      {
+        id: membership._id.toString(),
+        hospitalId: membership.hospitalId._id.toString(),
+        hospitalName: membership.hospitalId.name,
+        role: membership.role,
+        status: membership.status,
+      },
+    ];
+  });
 }
 
 export async function listPendingRequests(adminUserId: string, hospitalId: string): Promise<AccessRequestSummary[]> {
   await assertHospitalAdmin(adminUserId, hospitalId);
 
   const memberships = await HospitalMembershipModel.find({ hospitalId, status: "pending" }).populate<{
-    userId: PopulatedUser;
+    userId: PopulatedUser | null;
   }>("userId");
 
-  return memberships.map((membership) => ({
-    id: membership._id.toString(),
-    userId: membership.userId._id.toString(),
-    userName: membership.userId.name,
-    userEmail: membership.userId.email,
-    status: membership.status,
-    createdAt: membership.createdAt,
-  }));
+  // A dangling reference (the User no longer exists) is defensive-only — no
+  // User deletion path exists today — but skip it rather than throw.
+  return memberships.flatMap((membership) => {
+    if (!membership.userId) return [];
+    return [
+      {
+        id: membership._id.toString(),
+        userId: membership.userId._id.toString(),
+        userName: membership.userId.name,
+        userEmail: membership.userId.email,
+        status: membership.status,
+        createdAt: membership.createdAt,
+      },
+    ];
+  });
 }
 
 export async function approveRequest(

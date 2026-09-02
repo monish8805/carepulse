@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { Hospital } from "@shared/types";
 import { listAllHospitals, listMyAccessRequests, requestHospitalAccess } from "@/lib/api";
 import { Alert, Button, Input, Label, LoadingState, Modal } from "@/components/ui";
@@ -24,6 +24,7 @@ export default function RequestAccessModal({ open, onClose }: RequestAccessModal
   const [selectedHospitalId, setSelectedHospitalId] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(true);
   const searchBoxRef = useRef<HTMLDivElement>(null);
+  const listboxId = useId();
 
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -128,16 +129,30 @@ export default function RequestAccessModal({ open, onClose }: RequestAccessModal
                 }}
                 onFocus={() => setShowSuggestions(true)}
                 autoComplete="off"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={showSuggestions && availableHospitals.length > 0}
+                aria-controls={listboxId}
               />
               {showSuggestions && availableHospitals.length > 0 && (
-                <ul className="absolute inset-x-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-md border border-slate-200 bg-white py-1 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+                <ul
+                  id={listboxId}
+                  role="listbox"
+                  aria-label="Matching hospitals"
+                  className="absolute inset-x-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-md border border-slate-200 bg-white py-1 shadow-sm dark:border-slate-700 dark:bg-slate-800"
+                >
                   {filteredHospitals.length === 0 ? (
-                    <li className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
+                    <li
+                      role="option"
+                      aria-disabled="true"
+                      aria-selected={false}
+                      className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400"
+                    >
                       No matching hospitals.
                     </li>
                   ) : (
                     filteredHospitals.map((h) => (
-                      <li key={h.id}>
+                      <li key={h.id} role="option" aria-selected={selectedHospitalId === h.id}>
                         <button
                           type="button"
                           onClick={() => handlePick(h)}

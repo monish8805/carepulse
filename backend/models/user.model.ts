@@ -37,6 +37,11 @@ const userSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    // Optional at the schema level — required only for the self-registration
+    // flow (enforced in validators/auth.validator.ts), not for every way a
+    // User can be created (e.g. an Owner-provisioned hospital administrator
+    // never supplies one).
+    phone: { type: String, trim: true },
     passwordHash: { type: String, required: true },
     roles: { type: [String], enum: ROLES, default: [] },
     isVerified: { type: Boolean, default: false },
@@ -48,7 +53,21 @@ const userSchema = new Schema(
 );
 
 // Lets refreshSession/logout find the owning user directly by a token's hash.
-userSchema.index({ "refreshTokens.tokenHash": 1 }, { unique: true });
+// partialFilterExpression is required, not optional: a multikey unique index
+// treats an EMPTY array the same as a missing field — both index as a single
+// `null` key — so without this filter, the second user who ever reaches zero
+// refresh tokens (e.g. logs out) collides with the first and blocks every
+// subsequent user creation. Restricting the index to documents that actually
+// have at least one entry keeps the real uniqueness guarantee for live
+// tokens while letting any number of users sit at zero simultaneously.
+userSchema.index(
+  { "refreshTokens.tokenHash": 1 },
+  {
+    unique: true,
+    partialFilterExpression: { "refreshTokens.0": { $exists: true } },
+    name: "refreshTokens.tokenHash_unique_populated",
+  }
+);
 
 export type User = InferSchemaType<typeof userSchema>;
 export const UserModel = model("User", userSchema);

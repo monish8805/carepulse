@@ -3,23 +3,34 @@
 import { useState } from "react";
 import Link from "next/link";
 import { register, verifyOtp } from "@/lib/api";
-import { Alert, Button, Card, TextField } from "@/components/ui";
+import { Alert, Button, Card, Stepper, TextField } from "@/components/ui";
+
+const STEP_LABELS = ["Details", "Password", "Verify"];
 
 export default function RegisterPage() {
-  const [step, setStep] = useState<"form" | "otp" | "done">("form");
+  const [step, setStep] = useState<"details" | "password" | "otp" | "done">("details");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const stepIndex = { details: 0, password: 1, otp: 2, done: 2 }[step];
+
+  function handleDetailsContinue(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setStep("password");
+  }
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      await register({ name, email, password });
+      await register({ name, email, phone, password });
       setStep("otp");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed.");
@@ -46,14 +57,20 @@ export default function RegisterPage() {
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 dark:bg-slate-950">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">CarePulse</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Patient Portal — Register</p>
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Create your account</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">CarePulse Patient Portal</p>
         </div>
 
+        {step !== "done" && (
+          <div className="mb-6">
+            <Stepper labels={STEP_LABELS} currentIndex={stepIndex} />
+          </div>
+        )}
+
         <Card>
-          {step === "form" && (
-            <form onSubmit={handleRegister} className="space-y-4">
-              <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
+          {step === "details" && (
+            <form onSubmit={handleDetailsContinue} className="space-y-4">
+              <TextField label="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
               <TextField
                 label="Email"
                 type="email"
@@ -62,6 +79,26 @@ export default function RegisterPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+              <TextField
+                label="Phone"
+                type="tel"
+                autoComplete="tel"
+                placeholder="9876543210"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+              />
+
+              {error && <Alert variant="error">{error}</Alert>}
+
+              <Button type="submit" className="w-full">
+                Continue
+              </Button>
+            </form>
+          )}
+
+          {step === "password" && (
+            <form onSubmit={handleRegister} className="space-y-4">
               <TextField
                 label="Password"
                 type="password"
@@ -74,8 +111,15 @@ export default function RegisterPage() {
               {error && <Alert variant="error">{error}</Alert>}
 
               <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Sending code..." : "Register"}
+                {loading ? "Sending code..." : "Continue"}
               </Button>
+              <button
+                type="button"
+                onClick={() => setStep("details")}
+                className="block w-full text-center text-sm text-slate-500 hover:underline dark:text-slate-400"
+              >
+                ← Back
+              </button>
             </form>
           )}
 
@@ -84,7 +128,12 @@ export default function RegisterPage() {
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 We sent a verification code to <span className="font-medium">{email}</span>.
               </p>
-              <TextField label="6-digit code" value={code} onChange={(e) => setCode(e.target.value)} required />
+              <TextField
+                label="6-digit code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                required
+              />
 
               {error && <Alert variant="error">{error}</Alert>}
 

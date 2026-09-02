@@ -44,7 +44,7 @@ async function apiFetch<T>(baseUrl: string, path: string, options: RequestInit =
 
 export function registerAccount(
   baseUrl: string,
-  input: { name: string; email: string; password: string; role: Role }
+  input: { name: string; email: string; phone: string; password: string; role: Role }
 ) {
   return apiFetch<{ message: string }>(baseUrl, "/api/auth/register", {
     method: "POST",
