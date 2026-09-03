@@ -29,6 +29,11 @@ const otpEntrySchema = new Schema(
     codeHash: { type: String, required: true },
     role: { type: String, enum: ROLES }, // only meaningful on registerOtp
     expiresAt: { type: Date, required: true },
+    // Wrong guesses so far against this specific code. At OTP_MAX_ATTEMPTS the
+    // whole entry is discarded (see domain/auth.service.ts) — without it the
+    // expiry window alone doesn't stop a brute force, since nothing else in the
+    // stack limits attempts.
+    attempts: { type: Number, default: 0 },
   },
   { _id: false }
 );

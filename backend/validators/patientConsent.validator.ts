@@ -1,41 +1,46 @@
 import { Request, Response, NextFunction } from "express";
-import { HttpError } from "../utils/httpError";
+import { requireString, requireStringArray, MAX_EMAIL, MAX_SHORT_TEXT } from "./field.validator";
 
 // These only check the shape of the request. Business rules (is this really
 // an active doctor, are the categories valid, does this grant belong to the
 // caller) live in domain/patientConsent.service.ts.
 
 export function validateGrantAccess(req: Request, _res: Response, next: NextFunction) {
-  const { doctorEmail, dataCategories } = req.body;
-  if (!doctorEmail || typeof doctorEmail !== "string") {
-    return next(new HttpError(400, "doctorEmail is required."));
+  try {
+    requireString(req.body.doctorEmail, "doctorEmail", { max: MAX_EMAIL });
+    requireStringArray(req.body.dataCategories, "dataCategories");
+    next();
+  } catch (err) {
+    next(err);
   }
-  if (!Array.isArray(dataCategories)) {
-    return next(new HttpError(400, "dataCategories must be an array."));
-  }
-  next();
 }
 
 export function validateUpdateGrant(req: Request, _res: Response, next: NextFunction) {
-  const { dataCategories } = req.body;
-  if (!Array.isArray(dataCategories)) {
-    return next(new HttpError(400, "dataCategories must be an array."));
+  try {
+    requireStringArray(req.body.dataCategories, "dataCategories");
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 }
 
 export function validateDoctorLookup(req: Request, _res: Response, next: NextFunction) {
-  const { email } = req.query;
-  if (!email || typeof email !== "string") {
-    return next(new HttpError(400, "email query parameter is required."));
+  try {
+    requireString(req.query.email, "email query parameter", { max: MAX_EMAIL });
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 }
 
+// Bounded deliberately: `specialization` is free text that gets shown to
+// PATIENTS on every doctor lookup and on every grant row, so an unbounded
+// value would be stored once and echoed everywhere.
 export function validateUpdateProfile(req: Request, _res: Response, next: NextFunction) {
-  const { specialization } = req.body;
-  if (typeof specialization !== "string") {
-    return next(new HttpError(400, "specialization is required."));
+  try {
+    requireString(req.body.specialization, "specialization", { max: MAX_SHORT_TEXT });
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 }

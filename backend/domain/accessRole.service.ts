@@ -53,6 +53,16 @@ export async function createAccessRole(
   await assertHospitalAdmin(userId, hospitalId);
   const permissions = validatePermissions(input.permissions ?? []);
 
+  // The (hospital, name) unique index is the real guarantee; this pre-check
+  // exists so the everyday case — an admin reusing a role name — gets a
+  // message that says what happened instead of the generic duplicate-key 409
+  // from app.ts. Same "check first for the message, index for the truth"
+  // shape requestAccess already uses.
+  const existing = await AccessRoleModel.findOne({ hospital: hospitalId, name: input.name });
+  if (existing) {
+    throw new HttpError(409, `A role named "${input.name}" already exists in this hospital.`);
+  }
+
   const accessRole = await AccessRoleModel.create({
     hospital: hospitalId,
     name: input.name,

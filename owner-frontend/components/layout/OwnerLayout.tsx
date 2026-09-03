@@ -8,6 +8,7 @@ import { restoreSession, logout, getBackendHealth } from "@/lib/api";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import type { AccountMenuItem } from "./AccountMenu";
+import { LoadingState } from "@/components/ui";
 import { OWNER_NAV_SECTIONS } from "./nav";
 
 // Account/personal actions — not hospital/owner-application navigation, so
@@ -71,7 +72,22 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
     }
   }
 
-  if (checkingSession || !user) {
+  // A dedicated loading phase, rather than rendering `children` bare: bare
+  // children sit at a different position in a different tree from the
+  // shell-wrapped version below, so React would unmount and remount the page
+  // the moment the session resolved — the page would fetch, paint, then reset
+  // and fetch again, discarding anything already typed. Mirrors HospitalLayout.
+  if (checkingSession) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-cp-page dark:bg-cp-page-dark">
+        <LoadingState label="Loading your account..." />
+      </div>
+    );
+  }
+
+  // Logged out: render bare, so each page's own "log in first" state is what
+  // the visitor sees, exactly as before the shell existed.
+  if (!user) {
     return <>{children}</>;
   }
 

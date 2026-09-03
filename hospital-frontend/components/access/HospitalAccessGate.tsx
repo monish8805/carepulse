@@ -79,11 +79,17 @@ export default function HospitalAccessGate({ status, myRequests, onChanged, refr
     };
   }, [status]);
 
-  // Once the real record catches up (status genuinely becomes "pending"),
-  // the optimistic override agrees with it and can be dropped.
+  // Drop the optimistic override as soon as ANY fresh resolution arrives from
+  // the layout, not only when it comes back "pending". Clearing it only on
+  // "pending" meant that if the request didn't actually persist and the
+  // backend re-resolved to "none", the user stayed pinned on "Permission
+  // sent" forever: "Check again" could never flip the screen back, and
+  // "Cancel request" stayed disabled because no matching live entry existed.
+  // `myRequests` is a fresh array on every re-resolution, so keying on it
+  // clears the override exactly when real data supersedes it.
   useEffect(() => {
-    if (status === "pending") setOptimisticHospitalName(null);
-  }, [status]);
+    setOptimisticHospitalName(null);
+  }, [status, myRequests]);
 
   const effectiveStatus = optimisticHospitalName ? "pending" : status;
   const liveEntry = myRequests.find((r) => r.status === status);

@@ -25,6 +25,7 @@ import {
   Input,
   Label,
   LoadingState,
+  Modal,
   PageContainer,
   PageHeader,
   toneForStatus,
@@ -59,7 +60,12 @@ export default function SharingPage() {
 
   const [email, setEmail] = useState("");
   const [lookingUp, setLookingUp] = useState(false);
-  const [foundDoctor, setFoundDoctor] = useState<DoctorLookupResult | null>(null);
+  // The doctor a lookup actually confirmed, bundled with the exact email that
+  // produced them so the two can never diverge. Submitting the live `email`
+  // input instead would grant to whatever had been typed since the lookup
+  // while still reporting the looked-up doctor's name back — i.e. sharing
+  // health data with the wrong person and telling the patient otherwise.
+  const [confirmed, setConfirmed] = useState<{ doctor: DoctorLookupResult; email: string } | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [granting, setGranting] = useState(false);
 
@@ -67,6 +73,10 @@ export default function SharingPage() {
   const [editCategories, setEditCategories] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  // Revoking is one-way — there is no un-revoke, the patient has to look the
+  // doctor up and grant again from scratch — so it gets the same confirmation
+  // step every other irreversible action in the app has.
+  const [grantToRevoke, setGrantToRevoke] = useState<PatientConsent | null>(null);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -104,11 +114,14 @@ export default function SharingPage() {
     e.preventDefault();
     setError("");
     setMessage("");
-    setFoundDoctor(null);
+    setConfirmed(null);
     setLookingUp(true);
     try {
-      const doctor = await lookupDoctor(email);
-      setFoundDoctor(doctor);
+      // Capture the email this lookup was performed with, not whatever the
+      // input holds by the time "Grant access" is clicked.
+      const lookedUpEmail = email;
+      const doctor = await lookupDoctor(lookedUpEmail);
+      setConfirmed({ doctor, email: lookedUpEmail });
       setSelectedCategories([]);
     } catch (err) {
       showError(err);
@@ -124,14 +137,14 @@ export default function SharingPage() {
   }
 
   async function handleGrant() {
-    if (!foundDoctor || selectedCategories.length === 0) return;
+    if (!confirmed || selectedCategories.length === 0) return;
     setError("");
     setGranting(true);
     try {
-      await grantConsent({ doctorEmail: email, dataCategories: selectedCategories });
-      setMessage(`Access granted to ${foundDoctor.name}.`);
+      await grantConsent({ doctorEmail: confirmed.email, dataCategories: selectedCategories });
+      setMessage(`Access granted to ${confirmed.doctor.name}.`);
       setEmail("");
-      setFoundDoctor(null);
+      setConfirmed(null);
       setSelectedCategories([]);
       await refetchGrants();
     } catch (err) {
@@ -174,13 +187,16 @@ export default function SharingPage() {
     }
   }
 
-  async function handleRevoke(grant: PatientConsent) {
+  async function handleRevoke() {
+    const grant = grantToRevoke;
+    if (!grant) return;
     setError("");
     setMessage("");
     setRevokingId(grant.id);
     try {
       await revokeConsentAsPatient(grant.id);
       setMessage(`Revoked ${grant.doctorName}'s access.`);
+      setGrantToRevoke(null);
       await refetchGrants();
     } catch (err) {
       showError(err);
@@ -237,7 +253,13 @@ export default function SharingPage() {
                 type="email"
                 placeholder="doctor@hospital.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  // A confirmation card must never outlive the lookup that
+                  // produced it — editing the address means you have to look
+                  // the doctor up again before you can share anything.
+                  setConfirmed(null);
+                }}
                 autoComplete="off"
                 required
               />
@@ -247,16 +269,20 @@ export default function SharingPage() {
             </Button>
           </form>
 
-          {foundDoctor && (
+          {confirmed && (
             <div className="rounded-lg border border-cp-border p-4 dark:border-cp-border-dark">
               <div className="flex items-center gap-3">
-                <Avatar name={foundDoctor.name} />
+                <Avatar name={confirmed.doctor.name} />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-cp-text dark:text-cp-text-dark">
-                    {foundDoctor.name}
+                    {confirmed.doctor.name}
                   </p>
                   <p className="truncate text-xs text-cp-text-muted dark:text-cp-text-muted-dark">
-                    {foundDoctor.specialization ?? "No specialization listed"} · {foundDoctor.hospitalName}
+                    {confirmed.doctor.specialization ?? "No specialization listed"} ·{" "}
+                    {confirmed.doctor.hospitalName}
+                  </p>
+                  <p className="truncate font-mono text-xs text-cp-text-subtle dark:text-cp-text-subtle-dark">
+                    {confirmed.email}
                   </p>
                 </div>
               </div>
@@ -322,7 +348,11 @@ export default function SharingPage() {
                           <Button
                             variant="destructive-subtle"
                             disabled={revokingId === grant.id}
-                            onClick={() => handleRevoke(grant)}
+                            onClick={() => {
+                              setError("");
+                              setMessage("");
+                              setGrantToRevoke(grant);
+                            }}
                           >
                             {revokingId === grant.id ? "Revoking..." : "Revoke"}
                           </Button>
@@ -372,6 +402,28 @@ export default function SharingPage() {
           )}
         </Card>
       </div>
+
+      <Modal open={!!grantToRevoke} onClose={() => setGrantToRevoke(null)} title="Stop sharing your data?">
+        <div className="space-y-3">
+          <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
+            {grantToRevoke?.doctorName} will immediately lose access to your data. This can&apos;t be undone — you&apos;d
+            have to look them up and grant access again from scratch.
+          </p>
+          {error && <Alert variant="error">{error}</Alert>}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setGrantToRevoke(null)}>
+              Keep sharing
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={revokingId === grantToRevoke?.id}
+              onClick={handleRevoke}
+            >
+              {revokingId === grantToRevoke?.id ? "Revoking..." : "Revoke access"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </PageContainer>
   );
 }

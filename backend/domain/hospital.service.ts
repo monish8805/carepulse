@@ -40,15 +40,26 @@ export interface HospitalContext {
   canViewPatients: boolean;
 }
 
-async function resolveCanManageStaff(userId: string, hospitalId: string, role: string): Promise<boolean> {
-  if (role === "admin") return true;
+// Resolves the permission set ONCE and derives every frontend-facing capability
+// flag from it. These were two separate helpers that each called
+// resolvePermissions — itself up to three queries — so the second call was
+// entirely redundant work on GET /me, which runs on every page load and after
+// every silent token refresh. Add new flags here rather than as another
+// independent resolvePermissions caller.
+async function resolveHospitalCapabilities(
+  userId: string,
+  hospitalId: string,
+  role: string
+): Promise<{ canManageStaff: boolean; canViewPatients: boolean }> {
   const permissions = await resolvePermissions(userId, hospitalId);
-  return permissions.includes("staff.manage");
-}
-
-async function resolveCanViewPatients(userId: string, hospitalId: string): Promise<boolean> {
-  const permissions = await resolvePermissions(userId, hospitalId);
-  return permissions.includes("patient.view");
+  return {
+    // role: "admin" is still short-circuited here: an admin manages staff by
+    // virtue of being the admin, not through an AccessRole (see CLAUDE.md).
+    // resolvePermissions separately grants an admin every permission, so this
+    // is belt-and-braces rather than the only path.
+    canManageStaff: role === "admin" || permissions.includes("staff.manage"),
+    canViewPatients: permissions.includes("patient.view"),
+  };
 }
 
 export async function listActiveMemberships(userId: string): Promise<HospitalMembershipSummary[]> {
@@ -81,8 +92,11 @@ export async function verifyActiveMembership(userId: string, hospitalId: string)
     throw new HttpError(403, "You do not have access to this hospital.");
   }
 
-  const canManageStaff = await resolveCanManageStaff(userId, hospitalId, membership.role);
-  const canViewPatients = await resolveCanViewPatients(userId, hospitalId);
+  const { canManageStaff, canViewPatients } = await resolveHospitalCapabilities(
+    userId,
+    hospitalId,
+    membership.role
+  );
   return {
     id: membership.hospitalId._id.toString(),
     name: membership.hospitalId.name,
@@ -108,8 +122,11 @@ export async function getCurrentHospitalContext(
 
   if (!membership || !membership.hospitalId.isActive) return null;
 
-  const canManageStaff = await resolveCanManageStaff(userId, hospitalId, membership.role);
-  const canViewPatients = await resolveCanViewPatients(userId, hospitalId);
+  const { canManageStaff, canViewPatients } = await resolveHospitalCapabilities(
+    userId,
+    hospitalId,
+    membership.role
+  );
   return {
     id: membership.hospitalId._id.toString(),
     name: membership.hospitalId.name,
@@ -232,23 +249,43 @@ export async function createHospitalWithAdmin(input: {
 
   const temporaryPassword = generateTemporaryPassword();
   const passwordHash = await hashValue(temporaryPassword);
-  // isVerified: true — the Owner is directly provisioning this account, so there's
-  // no email-ownership OTP step to go through (unlike public self-registration).
-  const adminUser = await UserModel.create({
-    name: input.adminName,
-    email: normalizedEmail,
-    passwordHash,
-    roles: ["hospital"],
-    isVerified: true,
-  });
 
-  // Scoped to only this hospital — provisioning never grants access to any other.
-  await HospitalMembershipModel.create({
-    userId: adminUser._id,
-    hospitalId: hospital._id,
-    role: "admin",
-    status: "active",
-  });
+  // A hospital and its first administrator are provisioned as one unit, but
+  // that's three separate writes with no transaction. If a later one fails
+  // (the email-unique index losing a race with a concurrent registration, a
+  // transient), whatever already committed has to be undone — otherwise a
+  // half-provisioned Hospital survives with NO administrator, and since
+  // nothing can ever remove a hospital's admin membership, it would show up in
+  // the Owner's list and in the staff-facing "request access" list forever
+  // with nobody able to approve anyone into it. Clean up in reverse order and
+  // rethrow so the Owner sees the real failure and can simply retry.
+  let adminUser;
+  try {
+    // isVerified: true — the Owner is directly provisioning this account, so there's
+    // no email-ownership OTP step to go through (unlike public self-registration).
+    adminUser = await UserModel.create({
+      name: input.adminName,
+      email: normalizedEmail,
+      passwordHash,
+      roles: ["hospital"],
+      isVerified: true,
+    });
+
+    // Scoped to only this hospital — provisioning never grants access to any other.
+    await HospitalMembershipModel.create({
+      userId: adminUser._id,
+      hospitalId: hospital._id,
+      role: "admin",
+      status: "active",
+    });
+  } catch (err) {
+    if (adminUser) {
+      await HospitalMembershipModel.deleteMany({ userId: adminUser._id });
+      await UserModel.deleteOne({ _id: adminUser._id });
+    }
+    await HospitalModel.deleteOne({ _id: hospital._id });
+    throw err;
+  }
 
   await sendHospitalAdminWelcomeEmail(normalizedEmail, hospital.name, temporaryPassword);
 

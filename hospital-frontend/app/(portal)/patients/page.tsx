@@ -5,7 +5,18 @@ import Link from "next/link";
 import { Users } from "lucide-react";
 import type { SessionUser, GrantedPatientSummary } from "@shared/types";
 import { restoreSession, getMe, listGrantedPatients, revokeConsentAsDoctor } from "@/lib/api";
-import { Alert, Avatar, Badge, Button, Card, EmptyState, LoadingState, PageContainer, PageHeader } from "@/components/ui";
+import {
+  Alert,
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  LoadingState,
+  Modal,
+  PageContainer,
+  PageHeader,
+} from "@/components/ui";
 
 // "vitals.continuous" -> "Vitals — Continuous", matching the category
 // catalogue in backend/config/dataCategories.ts to a readable label — same
@@ -33,6 +44,10 @@ export default function PatientsPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [patients, setPatients] = useState<GrantedPatientSummary[]>([]);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  // A doctor giving up access cannot undo it themselves — only the patient can
+  // grant again — so it gets the same confirmation step as every other
+  // irreversible action in the app.
+  const [patientToRevoke, setPatientToRevoke] = useState<GrantedPatientSummary | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -66,7 +81,9 @@ export default function PatientsPage() {
     setError(err instanceof Error ? err.message : "Something went wrong.");
   }
 
-  async function handleRevoke(patient: GrantedPatientSummary) {
+  async function handleRevoke() {
+    const patient = patientToRevoke;
+    if (!patient) return;
     setError("");
     setMessage("");
     setRevokingId(patient.id);
@@ -74,6 +91,7 @@ export default function PatientsPage() {
       await revokeConsentAsDoctor(patient.id);
       setMessage(`Gave up access to ${patient.patientName}'s data.`);
       setPatients((prev) => prev.filter((p) => p.id !== patient.id));
+      setPatientToRevoke(null);
     } catch (err) {
       showError(err);
     } finally {
@@ -148,7 +166,11 @@ export default function PatientsPage() {
                     <Button
                       variant="destructive-subtle"
                       disabled={revokingId === patient.id}
-                      onClick={() => handleRevoke(patient)}
+                      onClick={() => {
+                        setError("");
+                        setMessage("");
+                        setPatientToRevoke(patient);
+                      }}
                     >
                       {revokingId === patient.id ? "Revoking..." : "Give up access"}
                     </Button>
@@ -166,6 +188,28 @@ export default function PatientsPage() {
           )}
         </Card>
       )}
+
+      <Modal
+        open={!!patientToRevoke}
+        onClose={() => setPatientToRevoke(null)}
+        title="Give up access to this patient?"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
+            You&apos;ll immediately lose access to {patientToRevoke?.patientName}&apos;s data. You can&apos;t undo
+            this yourself — only {patientToRevoke?.patientName} can grant access again.
+          </p>
+          {error && <Alert variant="error">{error}</Alert>}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setPatientToRevoke(null)}>
+              Keep access
+            </Button>
+            <Button variant="destructive" disabled={revokingId === patientToRevoke?.id} onClick={handleRevoke}>
+              {revokingId === patientToRevoke?.id ? "Revoking..." : "Give up access"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </PageContainer>
   );
 }

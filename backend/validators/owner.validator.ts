@@ -1,10 +1,13 @@
 import { Request, Response, NextFunction } from "express";
-import { HttpError } from "../utils/httpError";
+import { requireString, MAX_NAME, MAX_EMAIL, MAX_SHORT_TEXT } from "./field.validator";
 
 export function validateCreateHospital(req: Request, _res: Response, next: NextFunction) {
-  const { hospitalName, adminName, adminEmail } = req.body;
-  if (!hospitalName || !adminName || !adminEmail) {
-    return next(new HttpError(400, "hospitalName, adminName and adminEmail are required."));
+  try {
+    requireString(req.body.hospitalName, "hospitalName", { max: MAX_SHORT_TEXT });
+    requireString(req.body.adminName, "adminName", { max: MAX_NAME });
+    requireString(req.body.adminEmail, "adminEmail", { max: MAX_EMAIL });
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 }

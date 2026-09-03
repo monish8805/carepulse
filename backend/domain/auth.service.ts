@@ -1,7 +1,7 @@
 import mongoose, { HydratedDocument } from "mongoose";
 import { UserModel, User, Role } from "../models/user.model";
 import { hashValue, compareValue } from "../utils/hash";
-import { generateOtpCode, OTP_EXPIRES_IN_MINUTES } from "../utils/otp";
+import { generateOtpCode, OTP_EXPIRES_IN_MINUTES, OTP_MAX_ATTEMPTS } from "../utils/otp";
 import { sendOtpEmail } from "../utils/email";
 import { signAccessToken } from "../utils/jwt";
 import { generateRefreshToken, hashRefreshToken, REFRESH_TOKEN_MAX_AGE_MS } from "../utils/refreshToken";
@@ -77,6 +77,28 @@ async function withVersionRetry<T>(
   throw new HttpError(500, "Could not save — please try again.");
 }
 
+// What checking a submitted OTP produced. verifyOtp/resetPassword deliberately
+// do NOT throw from inside withVersionRetry's `mutate`: a throw there skips the
+// user.save() underneath it, which would silently discard the failed-attempt
+// increment we just recorded — i.e. the brute-force counter would never
+// actually count. So the check reports an outcome, the save always runs, and
+// the caller throws afterwards.
+type OtpOutcome = "ok" | "expired" | "wrong" | "too-many-attempts";
+
+// Compares a submitted code against an OTP entry, recording a failed attempt
+// on the entry itself when it doesn't match. The caller clears the entry (it
+// lives under a different field for register vs. reset) and does the throwing.
+async function checkOtpCode(
+  entry: { codeHash: string; expiresAt: Date; attempts: number } | null | undefined,
+  code: string
+): Promise<OtpOutcome> {
+  if (!entry || entry.expiresAt < new Date()) return "expired";
+  if (await compareValue(code, entry.codeHash)) return "ok";
+
+  entry.attempts += 1;
+  return entry.attempts >= OTP_MAX_ATTEMPTS ? "too-many-attempts" : "wrong";
+}
+
 async function setRegisterOtp(userId: string, role: Role): Promise<void> {
   const code = generateOtpCode();
   const codeHash = await hashValue(code);
@@ -85,7 +107,7 @@ async function setRegisterOtp(userId: string, role: Role): Promise<void> {
   const { user } = await withVersionRetry(
     () => UserModel.findById(userId),
     (u) => {
-      u.registerOtp = { codeHash, role, expiresAt };
+      u.registerOtp = { codeHash, role, expiresAt, attempts: 0 };
     }
   );
   await sendOtpEmail(user.email, code, "register");
@@ -99,7 +121,7 @@ async function setResetOtp(userId: string): Promise<void> {
   const { user } = await withVersionRetry(
     () => UserModel.findById(userId),
     (u) => {
-      u.resetOtp = { codeHash, expiresAt };
+      u.resetOtp = { codeHash, expiresAt, attempts: 0 };
     }
   );
   await sendOtpEmail(user.email, code, "reset");
@@ -215,24 +237,36 @@ export async function verifyOtp(input: { email: string; code: string }) {
     throw new HttpError(400, "Code expired or not found. Please register again.");
   }
 
-  await withVersionRetry(
+  const { result } = await withVersionRetry(
     () => UserModel.findById(lookup._id),
     async (user) => {
-      if (!user.registerOtp || user.registerOtp.expiresAt < new Date()) {
-        throw new HttpError(400, "Code expired or not found. Please register again.");
+      const entry = user.registerOtp;
+      const outcome = await checkOtpCode(entry, input.code);
+
+      if (outcome === "ok" && entry) {
+        const grantedRole = entry.role;
+        if (grantedRole && !user.roles.includes(grantedRole)) {
+          user.roles.push(grantedRole);
+        }
+        user.isVerified = true;
+        user.registerOtp = null;
+      } else if (outcome === "too-many-attempts") {
+        user.registerOtp = null;
       }
-      const codeMatches = await compareValue(input.code, user.registerOtp.codeHash);
-      if (!codeMatches) {
-        throw new HttpError(400, "Incorrect code.");
-      }
-      const grantedRole = user.registerOtp.role;
-      if (grantedRole && !user.roles.includes(grantedRole)) {
-        user.roles.push(grantedRole);
-      }
-      user.isVerified = true;
-      user.registerOtp = null;
+
+      return outcome;
     }
   );
+
+  if (result === "expired") {
+    throw new HttpError(400, "Code expired or not found. Please register again.");
+  }
+  if (result === "too-many-attempts") {
+    throw new HttpError(400, "Too many incorrect attempts. Please register again to get a new code.");
+  }
+  if (result === "wrong") {
+    throw new HttpError(400, "Incorrect code.");
+  }
 
   return { message: "Email verified. You can now log in." };
 }
@@ -356,22 +390,33 @@ export async function resetPassword(input: { email: string; code: string; newPas
 
   const newPasswordHash = await hashValue(input.newPassword);
 
-  await withVersionRetry(
+  const { result } = await withVersionRetry(
     () => UserModel.findById(lookup._id),
     async (user) => {
-      if (!user.resetOtp || user.resetOtp.expiresAt < new Date()) {
-        throw new HttpError(400, "Code expired or not found. Please try again.");
+      const outcome = await checkOtpCode(user.resetOtp, input.code);
+
+      if (outcome === "ok") {
+        user.resetOtp = null;
+        user.passwordHash = newPasswordHash;
+        // A password reset invalidates every existing session for this account.
+        user.refreshTokens = [] as unknown as typeof user.refreshTokens;
+      } else if (outcome === "too-many-attempts") {
+        user.resetOtp = null;
       }
-      const codeMatches = await compareValue(input.code, user.resetOtp.codeHash);
-      if (!codeMatches) {
-        throw new HttpError(400, "Incorrect code.");
-      }
-      user.resetOtp = null;
-      user.passwordHash = newPasswordHash;
-      // A password reset invalidates every existing session for this account.
-      user.refreshTokens = [] as unknown as typeof user.refreshTokens;
+
+      return outcome;
     }
   );
+
+  if (result === "expired") {
+    throw new HttpError(400, "Code expired or not found. Please try again.");
+  }
+  if (result === "too-many-attempts") {
+    throw new HttpError(400, "Too many incorrect attempts. Please request a new reset code.");
+  }
+  if (result === "wrong") {
+    throw new HttpError(400, "Incorrect code.");
+  }
 
   return { message: "Password reset. You can now log in." };
 }

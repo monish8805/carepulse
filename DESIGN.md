@@ -30,7 +30,7 @@ One small set of presentational components, written once and copied into all thr
 | `EmptyState` | Centered message (+ optional action) for an empty list — replaces bare "No X yet." text. |
 | `LoadingState` | Centered spinner + label — the one loading indicator, used both for full-page and section-level loading. |
 | `Divider` | Plain styled `<hr>`. |
-| `Modal` | Overlay dialog (`role="dialog"`, closes on Escape/overlay click/✕). Hospital Portal (`AddStaffModal`, the remove-staff confirmation) and now Owner Portal too (the delete-hospital confirmation, see below) — not yet copied to Patient since nothing there needs it. Role management (`ManageRolesPanel`) deliberately does **not** use `Modal` — see the Staff management section below. |
+| `Modal` | Overlay dialog (`role="dialog"`, closes on Escape/overlay click/✕). Copied into all three portals: Hospital (`AddStaffModal`, the remove-staff confirmation), Owner (the delete-hospital confirmation), and Patient (the revoke-data-sharing confirmation). Role management (`ManageRolesPanel`) deliberately does **not** use `Modal` — see the Staff management section below. |
 
 **Keep this list minimal.** Add a new primitive only once a second real page needs the same pattern — don't build ahead of actual usage.
 

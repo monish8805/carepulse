@@ -282,6 +282,33 @@ export async function addStaffDirectly(
 
   const normalizedEmail = input.email.toLowerCase().trim();
   let user = await UserModel.findOne({ email: normalizedEmail });
+
+  // Every eligibility check runs BEFORE anything is written. They used to sit
+  // after the "grant the hospital role" update below, which meant a rejected
+  // add still permanently left `"hospital"` on the account — a failed
+  // operation quietly widening what that account could log in to.
+  if (user) {
+    const existingMembership = await HospitalMembershipModel.findOne({ userId: user._id, hospitalId });
+    if (existingMembership) {
+      throw new HttpError(409, "This person already has a membership or pending request for this hospital.");
+    }
+
+    // Phase 1 "one account = one hospital": don't leak which other hospital
+    // this person belongs to — that's not this admin's business, just that
+    // they can't be added here. See accessRequest.service.ts::assertNoOtherLiveMembership
+    // for the same rule from the requester's own side (which names their hospital
+    // to *them*, since it's their own data).
+    const liveElsewhere = await HospitalMembershipModel.findOne({
+      userId: user._id,
+      status: { $in: LIVE_MEMBERSHIP_STATUSES },
+      hospitalId: { $ne: hospitalId },
+    });
+    if (liveElsewhere) {
+      throw new HttpError(409, "This person already belongs to another hospital and cannot be added here.");
+    }
+  }
+  // A brand-new email can't have any membership yet, so it needs no checks.
+
   let createdNewUser = false;
   let temporaryPassword: string | undefined;
 
@@ -300,32 +327,26 @@ export async function addStaffDirectly(
     await UserModel.updateOne({ _id: user._id }, { $addToSet: { roles: "hospital" } });
   }
 
-  const existingMembership = await HospitalMembershipModel.findOne({ userId: user._id, hospitalId });
-  if (existingMembership) {
-    throw new HttpError(409, "This person already has a membership or pending request for this hospital.");
+  // If the membership write fails after we just created the account, delete it
+  // again. Otherwise the account survives with a temporary password that was
+  // never emailed (the email only goes out below, once the membership sticks),
+  // and a retry would take the `user` branch above — createdNewUser false, no
+  // email ever sent — leaving a staff member who can never log in.
+  let membership;
+  try {
+    membership = await HospitalMembershipModel.create({
+      userId: user._id,
+      hospitalId,
+      role: "staff",
+      status: "active",
+      accessRoleId: accessRole._id,
+    });
+  } catch (err) {
+    if (createdNewUser) {
+      await UserModel.deleteOne({ _id: user._id });
+    }
+    throw err;
   }
-
-  // Phase 1 "one account = one hospital": don't leak which other hospital
-  // this person belongs to — that's not this admin's business, just that
-  // they can't be added here. See accessRequest.service.ts::assertNoOtherLiveMembership
-  // for the same rule from the requester's own side (which names their hospital
-  // to *them*, since it's their own data).
-  const liveElsewhere = await HospitalMembershipModel.findOne({
-    userId: user._id,
-    status: { $in: LIVE_MEMBERSHIP_STATUSES },
-    hospitalId: { $ne: hospitalId },
-  });
-  if (liveElsewhere) {
-    throw new HttpError(409, "This person already belongs to another hospital and cannot be added here.");
-  }
-
-  const membership = await HospitalMembershipModel.create({
-    userId: user._id,
-    hospitalId,
-    role: "staff",
-    status: "active",
-    accessRoleId: accessRole._id,
-  });
 
   if (createdNewUser && temporaryPassword) {
     const hospital = await HospitalModel.findById(hospitalId);

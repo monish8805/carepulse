@@ -144,22 +144,39 @@ export async function listMyGrants(patientId: string): Promise<PatientConsentSum
     "doctorId"
   );
 
-  const results: PatientConsentSummary[] = [];
-  for (const grant of grants) {
-    if (!grant.doctorId) continue;
-    const membership = await findActiveDoctorHospital(grant.doctorId._id);
-    results.push({
-      id: grant._id.toString(),
-      doctorId: grant.doctorId._id.toString(),
-      doctorName: grant.doctorId.name,
-      doctorSpecialization: grant.doctorId.specialization ?? null,
-      hospitalName: membership?.hospitalId?.isActive ? membership.hospitalId.name : null,
-      dataCategories: grant.dataCategories,
-      status: grant.status,
-      createdAt: grant.createdAt,
-    });
+  // One batched membership lookup for every doctor on the list, rather than a
+  // findOne+populate per row — a patient with ten grants used to cost twenty
+  // extra round-trips. listGrantedToMe already avoided a per-row query; this
+  // brings the patient's side of the same feature in line with it.
+  const doctorIds = grants.flatMap((grant) => (grant.doctorId ? [grant.doctorId._id] : []));
+  const memberships = await HospitalMembershipModel.find({
+    userId: { $in: doctorIds },
+    status: "active",
+  }).populate<{ hospitalId: { _id: Types.ObjectId; name: string; isActive: boolean } | null }>("hospitalId");
+
+  const hospitalNameByDoctorId = new Map<string, string | null>();
+  for (const membership of memberships) {
+    hospitalNameByDoctorId.set(
+      String(membership.userId),
+      membership.hospitalId?.isActive ? membership.hospitalId.name : null
+    );
   }
-  return results;
+
+  return grants.flatMap((grant) => {
+    if (!grant.doctorId) return [];
+    return [
+      {
+        id: grant._id.toString(),
+        doctorId: grant.doctorId._id.toString(),
+        doctorName: grant.doctorId.name,
+        doctorSpecialization: grant.doctorId.specialization ?? null,
+        hospitalName: hospitalNameByDoctorId.get(String(grant.doctorId._id)) ?? null,
+        dataCategories: grant.dataCategories,
+        status: grant.status,
+        createdAt: grant.createdAt,
+      },
+    ];
+  });
 }
 
 // Patient-owned and query-scoped (findOne({_id, patientId})) — a grantId

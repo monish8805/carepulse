@@ -1,18 +1,22 @@
 import { Request, Response, NextFunction } from "express";
-import { HttpError } from "../utils/httpError";
+import { requireString, MAX_NAME, MAX_EMAIL, MAX_ID } from "./field.validator";
 
 export function validateAddStaff(req: Request, _res: Response, next: NextFunction) {
-  const { name, email, accessRoleId } = req.body;
-  if (!name || !email || !accessRoleId) {
-    return next(new HttpError(400, "name, email and accessRoleId are required."));
+  try {
+    requireString(req.body.name, "name", { max: MAX_NAME });
+    requireString(req.body.email, "email", { max: MAX_EMAIL });
+    requireString(req.body.accessRoleId, "accessRoleId", { max: MAX_ID });
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 }
 
 export function validateUpdateStaffRole(req: Request, _res: Response, next: NextFunction) {
-  const { accessRoleId } = req.body;
-  if (!accessRoleId) {
-    return next(new HttpError(400, "accessRoleId is required."));
+  try {
+    requireString(req.body.accessRoleId, "accessRoleId", { max: MAX_ID });
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 }

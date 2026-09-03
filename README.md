@@ -33,6 +33,8 @@ Owner accounts can't be created through public registration. Run:
 
 ```
 cd backend
+# Set OWNER_EMAIL and OWNER_PASSWORD in backend/.env first — the script has
+# no built-in default, so it refuses to run without them.
 npm run seed:owner
 ```
 

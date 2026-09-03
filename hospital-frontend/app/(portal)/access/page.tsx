@@ -58,6 +58,7 @@ export default function AccessPage() {
   const [editRoleValue, setEditRoleValue] = useState("");
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
   const [togglingStatusId, setTogglingStatusId] = useState<string | null>(null);
+  const [removingStaff, setRemovingStaff] = useState(false);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -101,26 +102,47 @@ export default function AccessPage() {
     setError(err instanceof Error ? err.message : "Something went wrong.");
   }
 
+  // These are handed to child components (AddStaffModal, ManageRolesPanel)
+  // which invoke them without awaiting, so a rejection here would escape as an
+  // unhandled promise rejection and the user would see nothing at all while
+  // the list quietly stayed stale. Each one surfaces its own failure instead.
   async function refetchRoles() {
-    setAccessRoles(await listAccessRoles());
+    try {
+      setAccessRoles(await listAccessRoles());
+    } catch (err) {
+      showError(err);
+    }
   }
 
   async function refetchPendingAndStaff() {
-    setPendingRequests(await listPendingAccessRequests());
-    setStaff(await listStaff());
+    try {
+      setPendingRequests(await listPendingAccessRequests());
+      setStaff(await listStaff());
+    } catch (err) {
+      showError(err);
+    }
   }
 
   async function refetchPending() {
-    setPendingRequests(await listPendingAccessRequests());
+    try {
+      setPendingRequests(await listPendingAccessRequests());
+    } catch (err) {
+      showError(err);
+    }
   }
 
   async function refetchStaffOnly() {
-    setStaff(await listStaff());
+    try {
+      setStaff(await listStaff());
+    } catch (err) {
+      showError(err);
+    }
   }
 
   async function handleRemoveStaff() {
-    if (!staffToRemove) return;
+    if (!staffToRemove || removingStaff) return;
     setError("");
+    setRemovingStaff(true);
     try {
       await removeStaffMember(staffToRemove.id);
       setMessage(`Removed ${staffToRemove.userName}.`);
@@ -128,6 +150,8 @@ export default function AccessPage() {
       setStaffToRemove(null);
     } catch (err) {
       showError(err);
+    } finally {
+      setRemovingStaff(false);
     }
   }
 
@@ -431,8 +455,8 @@ export default function AccessPage() {
             <Button variant="secondary" onClick={() => setStaffToRemove(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleRemoveStaff}>
-              Remove
+            <Button variant="destructive" disabled={removingStaff} onClick={handleRemoveStaff}>
+              {removingStaff ? "Removing..." : "Remove"}
             </Button>
           </div>
         </div>

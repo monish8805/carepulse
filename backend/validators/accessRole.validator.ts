@@ -1,18 +1,21 @@
 import { Request, Response, NextFunction } from "express";
-import { HttpError } from "../utils/httpError";
+import { requireString, requireStringArray, MAX_SHORT_TEXT } from "./field.validator";
 
 export function validateCreateAccessRole(req: Request, _res: Response, next: NextFunction) {
-  const { name, permissions } = req.body;
-  if (!name || !Array.isArray(permissions)) {
-    return next(new HttpError(400, "name and permissions[] are required."));
+  try {
+    requireString(req.body.name, "name", { max: MAX_SHORT_TEXT });
+    requireStringArray(req.body.permissions, "permissions");
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 }
 
 export function validateUpdateAccessRole(req: Request, _res: Response, next: NextFunction) {
-  const { permissions } = req.body;
-  if (!Array.isArray(permissions)) {
-    return next(new HttpError(400, "permissions[] is required."));
+  try {
+    requireStringArray(req.body.permissions, "permissions");
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 }
