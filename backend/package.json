@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed:owner": "ts-node scripts/seedOwner.ts",
+    "audit:multi-hospital": "ts-node scripts/auditMultiHospitalMemberships.ts",
     "test": "vitest run"
   },
   "dependencies": {

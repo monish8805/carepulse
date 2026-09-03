@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { UserRound, Server, Building2 } from "lucide-react";
-import type { SessionUser, HospitalMembership } from "@shared/types";
-import { getBackendHealth, restoreSession, getMe, listHospitalMemberships, selectHospital } from "@/lib/api";
-import { Alert, Avatar, Badge, Button, Card, Divider, EmptyState, LoadingState, PageContainer } from "@/components/ui";
+import type { SessionUser } from "@shared/types";
+import { getBackendHealth, restoreSession, getMe } from "@/lib/api";
+import { Alert, Badge, Card, Divider, LoadingState, PageContainer } from "@/components/ui";
 
 // "Good morning/afternoon/evening" — purely presentational, computed from the
 // viewer's local clock; no new data or backend call involved.
@@ -16,10 +16,16 @@ function getGreeting(): string {
   return "Good evening";
 }
 
+// HospitalLayout only ever renders this page once the session's current
+// membership is "active" (its own gate, see components/access/HospitalAccessGate.tsx
+// for everyone else) — so `user.hospital` is guaranteed to already be
+// populated here; this page no longer needs to fetch or select a hospital
+// itself. It still does its own lightweight session check (unchanged pattern
+// — see HospitalLayout's own comment on why) purely so a direct/bare-children
+// render (e.g. while logged out) still shows something sensible.
 export default function Home() {
   const [backendUp, setBackendUp] = useState<boolean | null>(null);
   const [user, setUser] = useState<SessionUser | null>(null);
-  const [memberships, setMemberships] = useState<HospitalMembership[] | null>(null);
   const [error, setError] = useState("");
   // Distinct from `user === null` (confirmed logged out) — avoids a flash of
   // "Log in / Register" before the session-restore sequence has finished.
@@ -39,18 +45,7 @@ export default function Home() {
         setUser(null);
         return;
       }
-
-      const me = await getMe();
-      const list = await listHospitalMemberships();
-      setMemberships(list);
-
-      // If there's exactly one hospital and none is selected yet, pick it automatically.
-      if (!me.hospital && list.length === 1) {
-        await handleSelectHospital(list[0].hospitalId);
-        return;
-      }
-
-      setUser(me);
+      setUser(await getMe());
     } catch (err) {
       // A logged-in session exists (restoreSession succeeded) but a later
       // call failed — show that clearly rather than silently looking logged
@@ -58,18 +53,6 @@ export default function Home() {
       setError(err instanceof Error ? err.message : "Could not load your session. Try refreshing.");
     } finally {
       setCheckingSession(false);
-    }
-  }
-
-  async function handleSelectHospital(hospitalId: string) {
-    setError("");
-    try {
-      // The backend re-verifies membership server-side before switching context —
-      // this can fail even for a hospital we just listed, if access was revoked.
-      await selectHospital(hospitalId);
-      setUser(await getMe());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not switch hospital.");
     }
   }
 
@@ -144,11 +127,6 @@ export default function Home() {
                 </div>
                 <Divider />
                 <div className="flex items-center justify-between gap-3">
-                  <dt className="text-slate-500 dark:text-slate-400">Hospitals you belong to</dt>
-                  <dd className="font-medium text-slate-900 dark:text-slate-100">{memberships?.length ?? 0}</dd>
-                </div>
-                <Divider />
-                <div className="flex items-center justify-between gap-3">
                   <dt className="text-slate-500 dark:text-slate-400">Monitoring</dt>
                   <dd className="font-medium text-slate-500 dark:text-slate-400">Not yet enabled</dd>
                 </div>
@@ -156,48 +134,16 @@ export default function Home() {
             </Card>
           </div>
 
-          {memberships && memberships.length > 0 ? (
-            <Card title="Your hospitals" description="Your role can differ at each one." icon={Building2}>
-              <ul className="divide-y divide-slate-200 dark:divide-slate-800">
-                {memberships.map((m) => {
-                  const isCurrent = m.hospitalId === user.hospital?.id;
-                  return (
-                    <li
-                      key={m.hospitalId}
-                      className={`flex items-center gap-3 py-3 first:pt-0 last:pb-0 ${
-                        isCurrent ? "-mx-5 bg-slate-50 px-5 dark:bg-slate-800/40" : ""
-                      }`}
-                    >
-                      <Avatar name={m.hospitalName} />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {m.hospitalName}
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{m.role}</p>
-                      </div>
-                      {isCurrent ? (
-                        <Badge tone="info">Current</Badge>
-                      ) : (
-                        <Button variant="secondary" onClick={() => handleSelectHospital(m.hospitalId)}>
-                          Switch
-                        </Button>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+          {user.hospital && (
+            <Card title="Your hospital" description="The hospital your account is provisioned for." icon={Building2}>
+              <div className="flex items-center justify-between gap-3">
+                <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                  {user.hospital.name}
+                </p>
+                <Badge tone="info">{user.hospital.role}</Badge>
+              </div>
             </Card>
-          ) : memberships ? (
-            <EmptyState
-              title="You don't belong to a hospital yet"
-              description="Request access to a hospital to get started."
-              action={
-                <Link href="/access">
-                  <Button variant="secondary">Join a hospital →</Button>
-                </Link>
-              }
-            />
-          ) : null}
+          )}
         </div>
       ) : (
         <p className="text-sm text-slate-600 dark:text-slate-300">

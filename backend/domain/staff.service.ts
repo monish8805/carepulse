@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { HospitalMembershipModel } from "../models/hospitalMembership.model";
+import { HospitalMembershipModel, LIVE_MEMBERSHIP_STATUSES } from "../models/hospitalMembership.model";
 import { AccessRoleModel } from "../models/accessRole.model";
 import { HospitalModel } from "../models/hospital.model";
 import { UserModel } from "../models/user.model";
@@ -303,6 +303,20 @@ export async function addStaffDirectly(
   const existingMembership = await HospitalMembershipModel.findOne({ userId: user._id, hospitalId });
   if (existingMembership) {
     throw new HttpError(409, "This person already has a membership or pending request for this hospital.");
+  }
+
+  // Phase 1 "one account = one hospital": don't leak which other hospital
+  // this person belongs to — that's not this admin's business, just that
+  // they can't be added here. See accessRequest.service.ts::assertNoOtherLiveMembership
+  // for the same rule from the requester's own side (which names their hospital
+  // to *them*, since it's their own data).
+  const liveElsewhere = await HospitalMembershipModel.findOne({
+    userId: user._id,
+    status: { $in: LIVE_MEMBERSHIP_STATUSES },
+    hospitalId: { $ne: hospitalId },
+  });
+  if (liveElsewhere) {
+    throw new HttpError(409, "This person already belongs to another hospital and cannot be added here.");
   }
 
   const membership = await HospitalMembershipModel.create({
