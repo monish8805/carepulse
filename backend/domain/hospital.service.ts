@@ -34,11 +34,9 @@ export interface HospitalContext {
   canManageStaff: boolean;
   // Whether this session currently holds patient.view — gates seeing which
   // patients have granted this doctor data access (domain/patientConsent.service.ts::
-  // listGrantedToMe). Unlike canManageStaff, role: "admin" is NOT automatically
-  // true here: patient.view is a clinical permission from the AccessRole
-  // system, not a hospital-management action an admin inherently holds (see
-  // CLAUDE.md's admin-vs-AccessRole distinction) — an admin sees patients only
-  // if their own AccessRole grants it, same as any other staff member.
+  // listGrantedToMe). True for role: "admin" (resolvePermissions grants an
+  // admin every permission — see domain/permission.service.ts) or for staff
+  // whose current AccessRole includes patient.view.
   canViewPatients: boolean;
 }
 

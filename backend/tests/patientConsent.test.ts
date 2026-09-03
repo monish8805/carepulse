@@ -398,6 +398,30 @@ describe("Doctor-side visibility requires patient.view", () => {
       .set("Authorization", `Bearer ${doctorB.token}`);
     expect(resB.body.patients).toHaveLength(0);
   });
+
+  it("the hospital administrator can list granted patients without ever holding an AccessRole", async () => {
+    const hospitalName = `Admin Visibility Hospital ${Date.now()}`;
+    const hospital = await hospitalService.createHospitalWithAdmin({
+      hospitalName,
+      adminName: "Admin Visibility Admin",
+      adminEmail: `patientconsent.adminvisibility.${Date.now()}@example.com`,
+    });
+    cleanupHospitalIds.push(hospital.hospital.id);
+    cleanupUserEmails.push(hospital.admin.email);
+    const adminRaw = await loginAs(hospital.admin.email, hospital.temporaryPassword, "hospital");
+    const adminToken = await selectHospital(adminRaw, hospital.hospital.id);
+
+    // No AccessRole assigned to this admin membership at all (see
+    // hospital.service.ts::createHospitalWithAdmin) — 200 here, with an empty
+    // list since no patient has granted access to this specific account,
+    // proves the admin passed the patient.view gate rather than the request
+    // being rejected outright.
+    const res = await request(app)
+      .get("/api/hospital/patient-consents")
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.patients).toEqual([]);
+  });
 });
 
 describe("Doctor profile (specialization)", () => {

@@ -10,7 +10,9 @@ import { PERMISSIONS, Permission } from "../config/permissions";
 //
 // Fails closed at every step: a missing/inactive membership, a missing/inactive
 // AccessRole, or invalid permission data all resolve to an empty set. Missing
-// role information is never treated as unrestricted access.
+// role information is never treated as unrestricted access — the one
+// deliberate exception is role: "admin" below, which is explicit information
+// (not "missing"), not a fallback.
 export async function resolvePermissions(
   userId: string | undefined,
   hospitalId: string | undefined
@@ -18,12 +20,23 @@ export async function resolvePermissions(
   if (!userId || !hospitalId) return [];
 
   const membership = await HospitalMembershipModel.findOne({ userId, hospitalId, status: "active" });
-  if (!membership || !membership.accessRoleId) return [];
+  if (!membership) return [];
 
   // A disabled hospital resolves to zero permissions too, even mid-session —
   // same fail-closed treatment as every other check in this function.
   const hospital = await HospitalModel.findById(hospitalId);
   if (!hospital?.isActive) return [];
+
+  // The hospital administrator holds every permission — current and future —
+  // without ever needing an AccessRole: a deliberate product decision that
+  // the admin sees/can do everything a hospital account can, while everyone
+  // else is limited to whatever AccessRole they're assigned. This still sits
+  // below the active-membership/active-hospital checks above, so a
+  // removed/disabled admin membership or a disabled hospital still resolves
+  // to no permissions, same as anyone else.
+  if (membership.role === "admin") return [...PERMISSIONS];
+
+  if (!membership.accessRoleId) return [];
 
   // hospital: hospitalId is re-checked here too, not just membership.hospitalId —
   // this is what stops a membership's accessRoleId ever resolving to another

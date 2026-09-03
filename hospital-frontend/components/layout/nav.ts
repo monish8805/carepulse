@@ -3,10 +3,11 @@ import type { NavSection } from "./Sidebar";
 
 // Config-driven nav, kept next to HospitalLayout rather than inside the
 // generic Sidebar component. Only lists routes that actually exist today —
-// see PHASES.md for what's still ahead (vitals/alerts). "Patients" is always
-// listed regardless of whether the viewer currently holds patient.view — the
-// page itself shows an EmptyState when they don't, same pattern "Access &
-// Roles" already uses for non-admin/non-staff.manage viewers.
+// see PHASES.md for what's still ahead (vitals/alerts). This is the full,
+// unfiltered set — HospitalLayout hides "/patients"/"/access" from the
+// rendered sections for a viewer who currently lacks patient.view/
+// canManageStaff (see its own comment on visibleNavSections) — nav.ts itself
+// stays static config with no session-data access, same as before.
 export const HOSPITAL_NAV_SECTIONS: NavSection[] = [
   {
     items: [

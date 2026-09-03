@@ -12,7 +12,7 @@ import * as hospitalService from "../domain/hospital.service";
 import { hashValue } from "../utils/hash";
 import { requireAuth, requirePortal } from "../middleware/auth.middleware";
 import { requirePermission } from "../middleware/permission.middleware";
-import { Permission } from "../config/permissions";
+import { Permission, PERMISSIONS } from "../config/permissions";
 
 const OWNER_EMAIL = "monureddig@gmail.com";
 const OWNER_PASSWORD = "123456";
@@ -278,6 +278,30 @@ describe("Dynamic RBAC foundation", () => {
       // Denied: resolvePermissions requires the AccessRole's own `hospital` field
       // to match the current hospital context, not just the membership's.
       expect(res.status).toBe(403);
+    });
+
+    it("the hospital administrator holds every permission without ever needing an AccessRole", async () => {
+      // adminAToken's membership has never had an accessRoleId set (see
+      // hospital.service.ts::createHospitalWithAdmin) — proves this isn't
+      // coming from a role assignment.
+      for (const permission of PERMISSIONS) {
+        const res = await request(permissionTestApp)
+          .get(`/protected/${permission}`)
+          .set("Authorization", `Bearer ${adminAToken}`);
+        expect(res.status).toBe(200);
+      }
+    });
+
+    it("a disabled admin membership still resolves to no permissions (fails closed)", async () => {
+      await HospitalMembershipModel.updateOne({ hospitalId: hospitalAId, role: "admin" }, { status: "disabled" });
+
+      const res = await request(permissionTestApp)
+        .get("/protected/patient.view")
+        .set("Authorization", `Bearer ${adminAToken}`);
+      expect(res.status).toBe(403);
+
+      // restore for anything after this in the same describe block
+      await HospitalMembershipModel.updateOne({ hospitalId: hospitalAId, role: "admin" }, { status: "active" });
     });
   });
 

@@ -24,8 +24,10 @@ function formatDate(iso: string): string {
 // Read-only from this side, by design: a doctor can see who has shared
 // access with them and give it up (Revoke), but never change what's shared —
 // that's the patient's own call (see patient-frontend's /sharing page).
-// Gated by patient.view (HospitalContext.canViewPatients); always listed in
-// the Sidebar regardless, same pattern as "Access & Roles".
+// Gated by patient.view (HospitalContext.canViewPatients) — HospitalLayout
+// already hides this page's Sidebar link for a viewer without it, but the
+// EmptyState below stays as the real gate (nav filtering is presentation
+// only; a direct URL visit still needs to hit this check).
 export default function PatientsPage() {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
