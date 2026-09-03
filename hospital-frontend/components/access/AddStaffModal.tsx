@@ -105,7 +105,7 @@ export default function AddStaffModal({
     <Modal open onClose={onClose} title="Add staff">
       <div className="space-y-6">
         <div>
-          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Add directly</h3>
+          <h3 className="mb-3 text-sm font-semibold text-cp-text dark:text-cp-text-dark">Add directly</h3>
           <form onSubmit={handleAddSubmit} className="space-y-3">
             <TextField label="Full name" value={name} onChange={(e) => setName(e.target.value)} required />
             <TextField
@@ -144,7 +144,7 @@ export default function AddStaffModal({
         <Divider />
 
         <div>
-          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <h3 className="mb-3 text-sm font-semibold text-cp-text dark:text-cp-text-dark">
             Pending requests{pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ""}
           </h3>
 
@@ -155,18 +155,18 @@ export default function AddStaffModal({
           )}
 
           {pendingRequests.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">No pending requests.</p>
+            <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">No pending requests.</p>
           ) : (
-            <ul className="divide-y divide-slate-200 dark:divide-slate-800">
+            <ul className="divide-y divide-cp-border dark:divide-cp-border-dark">
               {pendingRequests.map((req) => (
                 <li key={req.id} className="space-y-2 py-4 first:pt-0 last:pb-0">
                   <div className="flex items-center gap-3">
                     <Avatar name={req.userName} size="sm" />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                      <p className="truncate text-sm font-medium text-cp-text dark:text-cp-text-dark">
                         {req.userName}
                       </p>
-                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">{req.userEmail}</p>
+                      <p className="truncate text-xs text-cp-text-muted dark:text-cp-text-muted-dark">{req.userEmail}</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">

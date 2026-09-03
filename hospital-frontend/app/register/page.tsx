@@ -55,20 +55,20 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 dark:bg-slate-950">
+    <main className="relative flex min-h-screen items-center justify-center bg-cp-page px-4 py-12 dark:bg-cp-page-dark">
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600 text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-cp-primary text-white dark:bg-cp-primary-dark">
             <Activity className="h-5 w-5" aria-hidden="true" strokeWidth={2} />
           </span>
           <div className="text-center">
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+            <h1 className="text-xl font-semibold tracking-tight text-cp-text dark:text-cp-text-dark">
               Create your account
             </h1>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">CarePulse Hospital Portal</p>
+            <p className="mt-1 text-sm text-cp-text-muted dark:text-cp-text-muted-dark">CarePulse Hospital Portal</p>
           </div>
         </div>
 
@@ -127,7 +127,7 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setStep("details")}
-                className="block w-full text-center text-sm text-slate-500 hover:underline dark:text-slate-400"
+                className="block w-full text-center text-sm text-cp-text-muted hover:underline dark:text-cp-text-muted-dark"
               >
                 ← Back
               </button>
@@ -136,7 +136,7 @@ export default function RegisterPage() {
 
           {step === "otp" && (
             <form onSubmit={handleVerify} className="space-y-4">
-              <p className="text-sm text-slate-600 dark:text-slate-300">
+              <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
                 We sent a verification code to <span className="font-medium">{email}</span>.
               </p>
               <TextField
@@ -164,9 +164,9 @@ export default function RegisterPage() {
           )}
 
           {step !== "done" && (
-            <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
+            <p className="mt-4 text-center text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
               Already have an account?{" "}
-              <Link href="/login" className="font-medium text-teal-700 hover:underline dark:text-teal-400">
+              <Link href="/login" className="font-medium text-cp-primary hover:underline dark:text-cp-primary-dark">
                 Log in
               </Link>
             </p>

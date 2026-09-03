@@ -7,8 +7,10 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 export default function Select({ error = false, className = "", children, ...props }: SelectProps) {
   return (
     <select
-      className={`block w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 focus:border-teal-300 focus:ring focus:ring-teal-600/10 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800 ${
-        error ? "border-red-400 focus:border-red-600 focus:ring-red-600" : "border-slate-300 dark:border-slate-700"
+      className={`block w-full rounded-lg border bg-cp-input px-3 py-2 text-sm text-cp-text focus:border-cp-focus-border focus:ring focus:ring-cp-focus-ring focus:outline-none disabled:cursor-not-allowed disabled:bg-cp-workspace disabled:text-cp-text-subtle dark:bg-cp-input-dark dark:text-cp-text-dark dark:disabled:bg-cp-workspace-dark ${
+        error
+          ? "border-red-400 focus:border-red-600 focus:ring-red-600"
+          : "border-cp-input-border dark:border-cp-input-border-dark"
       } ${className}`}
       {...props}
     >

@@ -29,18 +29,18 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 dark:bg-slate-950">
+    <main className="relative flex min-h-screen items-center justify-center bg-cp-page px-4 py-12 dark:bg-cp-page-dark">
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600 text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-cp-primary text-white dark:bg-cp-primary-dark">
             <Activity className="h-5 w-5" aria-hidden="true" strokeWidth={2} />
           </span>
           <div className="text-center">
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">CarePulse</h1>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Patient Portal — Log in</p>
+            <h1 className="text-xl font-semibold tracking-tight text-cp-text dark:text-cp-text-dark">CarePulse</h1>
+            <p className="mt-1 text-sm text-cp-text-muted dark:text-cp-text-muted-dark">Patient Portal — Log in</p>
           </div>
         </div>
 
@@ -72,13 +72,13 @@ export default function LoginPage() {
 
           <div className="mt-4 space-y-1 text-center text-sm">
             <p>
-              <Link href="/forgot-password" className="font-medium text-teal-700 hover:underline dark:text-teal-400">
+              <Link href="/forgot-password" className="font-medium text-cp-primary hover:underline dark:text-cp-primary-dark">
                 Forgot password?
               </Link>
             </p>
-            <p className="text-slate-500 dark:text-slate-400">
+            <p className="text-cp-text-muted dark:text-cp-text-muted-dark">
               No account?{" "}
-              <Link href="/register" className="font-medium text-teal-700 hover:underline dark:text-teal-400">
+              <Link href="/register" className="font-medium text-cp-primary hover:underline dark:text-cp-primary-dark">
                 Register
               </Link>
             </p>

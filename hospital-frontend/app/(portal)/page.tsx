@@ -60,10 +60,10 @@ export default function Home() {
     <PageContainer>
       {user && (
         <div className="mb-6">
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+          <h1 className="text-3xl font-semibold tracking-tight text-cp-text dark:text-cp-text-dark">
             {getGreeting()}, {user.name.split(" ")[0]}
           </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
             {user.hospital
               ? `You're signed in to ${user.hospital.name} as ${user.hospital.role === "admin" ? "an administrator" : user.hospital.role}.`
               : "You're signed in to CarePulse."}
@@ -85,19 +85,19 @@ export default function Home() {
             <Card title="Your session" icon={UserRound}>
               <dl className="flex flex-col gap-2.5 text-sm">
                 <div className="flex items-center justify-between gap-3">
-                  <dt className="text-slate-500 dark:text-slate-400">Name</dt>
-                  <dd className="truncate font-medium text-slate-900 dark:text-slate-100">{user.name}</dd>
+                  <dt className="text-cp-text-muted dark:text-cp-text-muted-dark">Name</dt>
+                  <dd className="truncate font-medium text-cp-text dark:text-cp-text-dark">{user.name}</dd>
                 </div>
                 <Divider />
                 <div className="flex items-center justify-between gap-3">
-                  <dt className="text-slate-500 dark:text-slate-400">Email</dt>
-                  <dd className="truncate font-medium text-slate-900 dark:text-slate-100">{user.email}</dd>
+                  <dt className="text-cp-text-muted dark:text-cp-text-muted-dark">Email</dt>
+                  <dd className="truncate font-medium text-cp-text dark:text-cp-text-dark">{user.email}</dd>
                 </div>
                 {user.hospital && (
                   <>
                     <Divider />
                     <div className="flex items-center justify-between gap-3">
-                      <dt className="text-slate-500 dark:text-slate-400">Role here</dt>
+                      <dt className="text-cp-text-muted dark:text-cp-text-muted-dark">Role here</dt>
                       <dd>
                         <Badge tone={user.hospital.role === "admin" ? "info" : "neutral"}>
                           {user.hospital.role}
@@ -112,23 +112,29 @@ export default function Home() {
             <Card title="System" icon={Server} iconTone="neutral">
               <dl className="flex flex-col gap-2.5 text-sm">
                 <div className="flex items-center justify-between gap-3">
-                  <dt className="text-slate-500 dark:text-slate-400">Backend</dt>
+                  <dt className="text-cp-text-muted dark:text-cp-text-muted-dark">Backend</dt>
                   <dd
                     className={`flex items-center gap-1.5 font-medium ${
-                      backendUp ? "text-green-700 dark:text-green-400" : "text-slate-500 dark:text-slate-400"
+                      backendUp
+                        ? "text-cp-connected-text dark:text-cp-connected-text-dark"
+                        : "text-cp-text-muted dark:text-cp-text-muted-dark"
                     }`}
                   >
                     <span
                       aria-hidden="true"
-                      className={`h-1.5 w-1.5 rounded-full ${backendUp ? "bg-green-600" : "bg-slate-400"}`}
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        backendUp
+                          ? "bg-cp-connected-text dark:bg-cp-connected-text-dark"
+                          : "bg-cp-text-subtle dark:bg-cp-text-subtle-dark"
+                      }`}
                     />
                     {backendUp === null ? "Checking..." : backendUp ? "Connected" : "Not connected"}
                   </dd>
                 </div>
                 <Divider />
                 <div className="flex items-center justify-between gap-3">
-                  <dt className="text-slate-500 dark:text-slate-400">Monitoring</dt>
-                  <dd className="font-medium text-slate-500 dark:text-slate-400">Not yet enabled</dd>
+                  <dt className="text-cp-text-muted dark:text-cp-text-muted-dark">Monitoring</dt>
+                  <dd className="font-medium text-cp-text-muted dark:text-cp-text-muted-dark">Not yet enabled</dd>
                 </div>
               </dl>
             </Card>
@@ -137,7 +143,7 @@ export default function Home() {
           {user.hospital && (
             <Card title="Your hospital" description="The hospital your account is provisioned for." icon={Building2}>
               <div className="flex items-center justify-between gap-3">
-                <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                <p className="truncate text-sm font-medium text-cp-text dark:text-cp-text-dark">
                   {user.hospital.name}
                 </p>
                 <Badge tone="info">{user.hospital.role}</Badge>
@@ -146,12 +152,12 @@ export default function Home() {
           )}
         </div>
       ) : (
-        <p className="text-sm text-slate-600 dark:text-slate-300">
-          <Link href="/login" className="font-medium text-teal-700 hover:underline dark:text-teal-400">
+        <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
+          <Link href="/login" className="font-medium text-cp-primary hover:underline dark:text-cp-primary-dark">
             Log in
           </Link>{" "}
           or{" "}
-          <Link href="/register" className="font-medium text-teal-700 hover:underline dark:text-teal-400">
+          <Link href="/register" className="font-medium text-cp-primary hover:underline dark:text-cp-primary-dark">
             Register
           </Link>
         </p>

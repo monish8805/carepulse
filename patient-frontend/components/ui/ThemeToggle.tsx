@@ -49,7 +49,7 @@ export default function ThemeToggle() {
       type="button"
       onClick={toggle}
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600 dark:text-slate-400 dark:hover:bg-slate-800"
+      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-cp-text-muted hover:bg-cp-workspace focus-visible:outline focus-visible:outline-2 focus-visible:outline-cp-primary dark:text-cp-text-muted-dark dark:hover:bg-cp-workspace-dark"
     >
       {isDark ? (
         <Sun className="h-4 w-4" aria-hidden="true" strokeWidth={2} />

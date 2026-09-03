@@ -8,11 +8,13 @@ interface IconBadgeProps {
   className?: string;
 }
 
+// teal/amber are exact CarePulse tokens (DESIGN.md); blue/violet are one-off
+// accents outside the given system, left as literal Tailwind classes.
 const TONE_CLASSES: Record<IconBadgeTone, string> = {
-  teal: "bg-teal-50 text-teal-600 dark:bg-teal-900/40 dark:text-teal-400",
-  neutral: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+  teal: "bg-cp-icon-soft text-cp-primary dark:bg-cp-icon-soft-dark dark:text-cp-primary-dark",
+  neutral: "bg-cp-workspace text-cp-text-muted dark:bg-cp-workspace-dark dark:text-cp-text-muted-dark",
   blue: "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400",
-  amber: "bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400",
+  amber: "bg-cp-pending-bg text-cp-pending-text dark:bg-cp-pending-bg-dark dark:text-cp-pending-text-dark",
   violet: "bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400",
 };
 

@@ -118,18 +118,18 @@ export default function AccountMenu({ userName, userEmail, items, onLogout }: Ac
             setOpen(true);
           }
         }}
-        className={`flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm font-medium text-slate-700 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600 dark:text-slate-200 ${
+        className={`flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm font-medium text-cp-text transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-cp-primary dark:text-cp-text-dark ${
           open
-            ? "border-teal-300 bg-teal-50/60 dark:border-teal-700 dark:bg-teal-900/20"
-            : "border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+            ? "border-cp-focus-border bg-cp-nav-selected dark:border-cp-primary-dark/50 dark:bg-cp-nav-selected-dark"
+            : "border-cp-border hover:bg-cp-workspace dark:border-cp-border-dark dark:hover:bg-cp-workspace-dark"
         }`}
       >
         <Avatar name={userName} size="sm" />
         <span className="hidden max-w-[10rem] truncate sm:inline">{userName}</span>
         {open ? (
-          <ChevronUp className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" strokeWidth={2} />
+          <ChevronUp className="h-3.5 w-3.5 text-cp-text-subtle dark:text-cp-text-subtle-dark" aria-hidden="true" strokeWidth={2} />
         ) : (
-          <ChevronDown className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" strokeWidth={2} />
+          <ChevronDown className="h-3.5 w-3.5 text-cp-text-subtle dark:text-cp-text-subtle-dark" aria-hidden="true" strokeWidth={2} />
         )}
       </button>
 
@@ -139,11 +139,11 @@ export default function AccountMenu({ userName, userEmail, items, onLogout }: Ac
           role="menu"
           aria-label="Account menu"
           onKeyDown={handleMenuKeyDown}
-          className="absolute right-0 top-full z-30 mt-2 w-60 rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+          className="absolute right-0 top-full z-30 mt-2 w-60 rounded-xl border border-cp-border bg-cp-card p-2 shadow-lg dark:border-cp-border-dark dark:bg-cp-card-dark"
         >
-          <div className="mb-1 border-b border-slate-100 px-2.5 pt-1 pb-2.5 dark:border-slate-800">
-            <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{userName}</p>
-            {userEmail && <p className="truncate text-xs text-slate-500 dark:text-slate-400">{userEmail}</p>}
+          <div className="mb-1 border-b border-cp-border px-2.5 pt-1 pb-2.5 dark:border-cp-border-dark">
+            <p className="truncate text-sm font-semibold text-cp-text dark:text-cp-text-dark">{userName}</p>
+            {userEmail && <p className="truncate text-xs text-cp-text-muted dark:text-cp-text-muted-dark">{userEmail}</p>}
           </div>
 
           <div className="flex flex-col gap-0.5">
@@ -164,23 +164,25 @@ export default function AccountMenu({ userName, userEmail, items, onLogout }: Ac
                   }}
                   className={`flex h-8 w-full items-center justify-between gap-2 rounded-lg px-2.5 text-left text-sm transition-colors disabled:cursor-not-allowed ${
                     item.active
-                      ? "bg-teal-50 font-semibold text-teal-800 dark:bg-teal-900/30 dark:text-teal-400"
+                      ? "bg-cp-nav-selected font-semibold text-cp-primary dark:bg-cp-nav-selected-dark dark:text-cp-primary-dark"
                       : item.disabled
-                        ? "text-slate-400 dark:text-slate-600"
-                        : "font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                        ? "text-cp-text-subtle dark:text-cp-text-subtle-dark"
+                        : "font-medium text-cp-text hover:bg-cp-workspace dark:text-cp-text-dark dark:hover:bg-cp-workspace-dark"
                   }`}
                 >
                   <span className="flex items-center gap-2">
                     {Icon && <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" strokeWidth={2} />}
                     {item.label}
                   </span>
-                  {item.hint && <span className="text-xs text-slate-400 dark:text-slate-500">{item.hint}</span>}
+                  {item.hint && (
+                    <span className="text-xs text-cp-text-subtle dark:text-cp-text-subtle-dark">{item.hint}</span>
+                  )}
                 </button>
               );
             })}
           </div>
 
-          <div className="mt-1 border-t border-slate-100 pt-1 dark:border-slate-800">
+          <div className="mt-1 border-t border-cp-border pt-1 dark:border-cp-border-dark">
             <button
               ref={(el) => {
                 itemRefs.current[items.length] = el;
@@ -191,9 +193,9 @@ export default function AccountMenu({ userName, userEmail, items, onLogout }: Ac
                 onLogout();
                 setOpen(false);
               }}
-              className="flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm font-medium text-cp-text hover:bg-cp-workspace dark:text-cp-text-dark dark:hover:bg-cp-workspace-dark"
             >
-              <LogOut className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" strokeWidth={2} />
+              <LogOut className="h-3.5 w-3.5 shrink-0 text-cp-text-subtle dark:text-cp-text-subtle-dark" aria-hidden="true" strokeWidth={2} />
               Log out
             </button>
           </div>

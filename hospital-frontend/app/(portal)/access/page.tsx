@@ -204,8 +204,8 @@ export default function AccessPage() {
             <Alert variant="error">{error}</Alert>
           </div>
         )}
-        <p className="text-sm text-slate-600 dark:text-slate-300">
-          <Link href="/login" className="font-medium text-teal-700 hover:underline dark:text-teal-400">
+        <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
+          <Link href="/login" className="font-medium text-cp-primary hover:underline dark:text-cp-primary-dark">
             Log in
           </Link>{" "}
           first.
@@ -245,8 +245,8 @@ export default function AccessPage() {
                 <div className="flex items-start gap-3">
                   <IconBadge icon={Users} />
                   <div>
-                    <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Staff</h3>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Current active staff members.</p>
+                    <h3 className="text-base font-semibold text-cp-text dark:text-cp-text-dark">Staff</h3>
+                    <p className="mt-1 text-sm text-cp-text-muted dark:text-cp-text-muted-dark">Current active staff members.</p>
                   </div>
                 </div>
                 {isAdmin && (
@@ -272,7 +272,7 @@ export default function AccessPage() {
               ) : filteredStaff.length === 0 ? (
                 <EmptyState title="No staff match your search" />
               ) : (
-                <ul className="divide-y divide-slate-200 dark:divide-slate-800">
+                <ul className="divide-y divide-cp-border dark:divide-cp-border-dark">
                   {filteredStaff.map((member) => {
                     // A staff.manage holder (not an admin) can't remove or
                     // disable another staff.manage holder — matches the
@@ -291,12 +291,12 @@ export default function AccessPage() {
                           <Avatar name={member.userName} size="sm" />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                              <p className="truncate text-sm font-medium text-cp-text dark:text-cp-text-dark">
                                 {member.userName}
                               </p>
                               {!isActive && <Badge tone="neutral">disabled</Badge>}
                             </div>
-                            <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                            <p className="truncate text-xs text-cp-text-muted dark:text-cp-text-muted-dark">
                               {member.userEmail}
                               {member.accessRoleName ? ` · ${member.accessRoleName}` : ""}
                             </p>
@@ -381,10 +381,10 @@ export default function AccessPage() {
                 <div className="flex items-start gap-3">
                   <IconBadge icon={ShieldCheck} />
                   <div>
-                    <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                    <h3 className="text-base font-semibold text-cp-text dark:text-cp-text-dark">
                       Roles &amp; Permissions
                     </h3>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
                       {accessRoles.length} role{accessRoles.length === 1 ? "" : "s"} defined for{" "}
                       {user.hospital!.name}.
                     </p>
@@ -422,7 +422,7 @@ export default function AccessPage() {
 
       <Modal open={!!staffToRemove} onClose={() => setStaffToRemove(null)} title="Remove staff member">
         <div className="space-y-3">
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
             Remove {staffToRemove?.userName} from this hospital? They&apos;ll need to request access again to
             rejoin.
           </p>

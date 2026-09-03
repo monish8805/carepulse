@@ -34,17 +34,17 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-lg dark:border-slate-800 dark:bg-slate-900"
+        className="relative w-full max-w-md rounded-xl border border-cp-border bg-cp-card p-5 shadow-lg dark:border-cp-border-dark dark:bg-cp-card-dark"
       >
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 id={titleId} className="text-base font-semibold text-slate-900 dark:text-slate-100">
+          <h2 id={titleId} className="text-base font-semibold text-cp-text dark:text-cp-text-dark">
             {title}
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600 dark:text-slate-400 dark:hover:bg-slate-800"
+            className="rounded-lg p-1 text-cp-text-muted hover:bg-cp-workspace focus-visible:outline focus-visible:outline-2 focus-visible:outline-cp-primary dark:text-cp-text-muted-dark dark:hover:bg-cp-workspace-dark"
           >
             ✕
           </button>

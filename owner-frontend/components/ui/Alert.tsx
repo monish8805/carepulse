@@ -10,17 +10,17 @@ interface AlertProps {
 }
 
 const VARIANT_CLASSES: Record<AlertVariant, string> = {
-  error:
-    "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400",
+  // Error/destructive has no CarePulse light value — kept as existing red; dark uses the given error tokens.
+  error: "border-red-200 bg-red-50 text-red-700 dark:border-cp-error-text-dark/30 dark:bg-cp-error-bg-dark dark:text-cp-error-text-dark",
   success:
-    "border-green-200 bg-green-50 text-green-700 dark:border-green-900/50 dark:bg-green-950/40 dark:text-green-400",
-  info: "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900/50 dark:bg-teal-950/40 dark:text-teal-400",
+    "border-cp-success-text/20 bg-cp-success-bg text-cp-success-text dark:border-cp-success-text-dark/30 dark:bg-cp-success-bg-dark dark:text-cp-success-text-dark",
+  info: "border-cp-focus-border/40 bg-cp-icon-soft text-cp-primary dark:border-cp-primary-dark/40 dark:bg-cp-icon-soft-dark dark:text-cp-primary-dark",
 };
 
 const VARIANT_ICON_CLASSES: Record<AlertVariant, string> = {
-  error: "text-red-600 dark:text-red-400",
-  success: "text-green-600 dark:text-green-400",
-  info: "text-teal-600 dark:text-teal-400",
+  error: "text-red-600 dark:text-cp-error-text-dark",
+  success: "text-cp-success-text dark:text-cp-success-text-dark",
+  info: "text-cp-primary dark:text-cp-primary-dark",
 };
 
 const VARIANT_ICONS: Record<AlertVariant, LucideIcon> = {

@@ -38,11 +38,11 @@ export default function TextField({
         {...props}
       />
       {error ? (
-        <p id={errorId} className="mt-1 text-sm text-red-600 dark:text-red-400">
+        <p id={errorId} className="mt-1 text-sm text-red-600 dark:text-cp-error-text-dark">
           {error}
         </p>
       ) : (
-        hint && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{hint}</p>
+        hint && <p className="mt-1 text-sm text-cp-text-muted dark:text-cp-text-muted-dark">{hint}</p>
       )}
     </div>
   );

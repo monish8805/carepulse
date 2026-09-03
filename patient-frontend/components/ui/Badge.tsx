@@ -8,25 +8,26 @@ interface BadgeProps {
 }
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
-  neutral: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-  success: "bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-400",
-  warning: "bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
-  danger: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
-  info: "bg-teal-50 text-teal-800 dark:bg-teal-900/40 dark:text-teal-400",
+  neutral: "bg-cp-workspace text-cp-text-muted dark:bg-cp-workspace-dark dark:text-cp-text-muted-dark",
+  success: "bg-cp-success-bg text-cp-success-text dark:bg-cp-success-bg-dark dark:text-cp-success-text-dark",
+  warning: "bg-cp-pending-bg text-cp-pending-text dark:bg-cp-pending-bg-dark dark:text-cp-pending-text-dark",
+  // Error/destructive has no CarePulse light value — kept as existing red; dark uses the given error tokens.
+  danger: "bg-red-100 text-red-700 dark:bg-cp-error-bg-dark dark:text-cp-error-text-dark",
+  info: "bg-cp-icon-soft text-cp-primary dark:bg-cp-icon-soft-dark dark:text-cp-primary-dark",
 };
 
 const DOT_CLASSES: Record<BadgeTone, string> = {
-  neutral: "bg-slate-400 dark:bg-slate-500",
-  success: "bg-green-600 dark:bg-green-400",
-  warning: "bg-amber-600 dark:bg-amber-400",
-  danger: "bg-red-500 dark:bg-red-400",
-  info: "bg-teal-600 dark:bg-teal-400",
+  neutral: "bg-cp-text-subtle dark:bg-cp-text-subtle-dark",
+  success: "bg-cp-success-text dark:bg-cp-success-text-dark",
+  warning: "bg-cp-pending-text dark:bg-cp-pending-text-dark",
+  danger: "bg-red-500 dark:bg-cp-error-text-dark",
+  info: "bg-cp-primary dark:bg-cp-primary-dark",
 };
 
 export default function Badge({ children, tone = "neutral" }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${TONE_CLASSES[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-mono text-xs font-semibold whitespace-nowrap ${TONE_CLASSES[tone]}`}
     >
       <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOT_CLASSES[tone]}`} />
       {children}

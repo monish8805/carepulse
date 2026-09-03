@@ -85,7 +85,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
         mobileMenuOpen={false}
         onToggleMobileMenu={() => {}}
       />
-      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto bg-cp-workspace dark:bg-cp-workspace-dark">{children}</div>
     </div>
   );
 }

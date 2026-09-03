@@ -74,7 +74,7 @@ export default function Sidebar({ sections, mobileOpen, onCloseMobile, storageKe
       )}
       <nav
         aria-label="Main navigation"
-        className={`fixed inset-y-0 top-14 z-20 flex w-60 flex-col gap-1 border-r border-slate-200 bg-white p-2 transition-transform duration-200 ease-in-out md:static md:top-0 md:translate-x-0 md:transition-[width] md:duration-150 dark:border-slate-800 dark:bg-slate-900 ${
+        className={`fixed inset-y-0 top-14 z-20 flex w-60 flex-col gap-1 border-r border-cp-border bg-cp-sidebar p-2 transition-transform duration-200 ease-in-out md:static md:top-0 md:translate-x-0 md:transition-[width] md:duration-150 dark:border-cp-border-dark dark:bg-cp-sidebar-dark ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } ${collapsed ? "md:w-14" : "md:w-56"}`}
       >
@@ -82,7 +82,7 @@ export default function Sidebar({ sections, mobileOpen, onCloseMobile, storageKe
           type="button"
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="hidden self-end rounded-lg px-2 py-1 text-sm text-slate-500 hover:bg-slate-100 md:block dark:text-slate-400 dark:hover:bg-slate-800"
+          className="hidden self-end rounded-lg px-2 py-1 text-sm text-cp-text-muted hover:bg-cp-workspace md:block dark:text-cp-text-muted-dark dark:hover:bg-cp-workspace-dark"
         >
           {collapsed ? "»" : "«"}
         </button>
@@ -90,7 +90,7 @@ export default function Sidebar({ sections, mobileOpen, onCloseMobile, storageKe
         {sections.map((section, index) => (
           <div key={section.label ?? index}>
             {section.label && !collapsed && (
-              <div className="px-2 pt-2 pb-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+              <div className="px-2 pt-2 pb-1 font-mono text-xs font-semibold tracking-wide text-cp-text-muted uppercase dark:text-cp-text-muted-dark">
                 {section.label}
               </div>
             )}
@@ -105,13 +105,13 @@ export default function Sidebar({ sections, mobileOpen, onCloseMobile, storageKe
                   title={collapsed ? item.label : undefined}
                   className={`flex items-center gap-3 truncate rounded-lg px-3 py-2 text-sm ${
                     active
-                      ? "bg-teal-50 font-semibold text-teal-800 dark:bg-teal-900/30 dark:text-teal-400"
-                      : "font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                      ? "bg-cp-nav-selected font-semibold text-cp-primary dark:bg-cp-nav-selected-dark dark:text-cp-primary-dark"
+                      : "font-medium text-cp-text-muted hover:bg-cp-workspace dark:text-cp-text-muted-dark dark:hover:bg-cp-workspace-dark"
                   }`}
                 >
                   {Icon && (
                     <Icon
-                      className={`h-4 w-4 shrink-0 ${active ? "" : "text-slate-400 dark:text-slate-500"}`}
+                      className={`h-4 w-4 shrink-0 ${active ? "" : "text-cp-text-subtle dark:text-cp-text-subtle-dark"}`}
                       aria-hidden="true"
                       strokeWidth={2}
                     />
@@ -124,7 +124,7 @@ export default function Sidebar({ sections, mobileOpen, onCloseMobile, storageKe
         ))}
 
         {footer && !collapsed && (
-          <div className="mt-auto flex flex-col gap-1 rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/50">
+          <div className="mt-auto flex flex-col gap-1 rounded-xl border border-cp-border bg-cp-workspace p-3 dark:border-cp-border-dark dark:bg-cp-workspace-dark">
             {footer}
           </div>
         )}

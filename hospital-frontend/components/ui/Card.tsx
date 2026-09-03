@@ -22,17 +22,17 @@ interface CardProps {
 export default function Card({ title, description, icon, iconTone, children, className = "" }: CardProps) {
   return (
     <div
-      className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 ${className}`}
+      className={`rounded-xl border border-cp-border bg-cp-card p-5 shadow-sm dark:border-cp-border-dark dark:bg-cp-card-dark ${className}`}
     >
       {(title || description) && (
         <div className="mb-4 flex items-start gap-3">
           {icon && <IconBadge icon={icon} tone={iconTone} />}
           <div className="min-w-0">
             {title && (
-              <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
+              <h3 className="text-base font-semibold text-cp-text dark:text-cp-text-dark">{title}</h3>
             )}
             {description && (
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
+              <p className="mt-1 text-sm text-cp-text-muted dark:text-cp-text-muted-dark">{description}</p>
             )}
           </div>
         </div>

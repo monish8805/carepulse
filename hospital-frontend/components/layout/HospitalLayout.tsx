@@ -27,7 +27,7 @@ type Phase =
 
 function BrandMark() {
   return (
-    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600 text-white">
+    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-cp-primary text-white dark:bg-cp-primary-dark">
       <Activity className="h-5 w-5" aria-hidden="true" strokeWidth={2} />
     </span>
   );
@@ -136,7 +136,7 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
 
   if (phase.kind === "checking") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-cp-page dark:bg-cp-page-dark">
         <BrandMark />
         <LoadingState label="Loading your account..." />
       </div>
@@ -149,11 +149,11 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
 
   if (phase.kind === "error") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-cp-page px-4 dark:bg-cp-page-dark">
         <BrandMark />
         <Card className="w-full max-w-md text-center">
           <div className="flex flex-col items-center gap-3">
-            <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            <h1 className="text-lg font-semibold text-cp-text dark:text-cp-text-dark">
               Something went wrong loading your account
             </h1>
             <Alert variant="error">{phase.message}</Alert>
@@ -178,7 +178,7 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
           mobileMenuOpen={false}
           onToggleMobileMenu={() => {}}
         />
-        <div className="min-w-0 flex-1 overflow-y-auto">
+        <div className="min-w-0 flex-1 overflow-y-auto bg-cp-workspace dark:bg-cp-workspace-dark">
           <HospitalAccessGate
             status={phase.status}
             myRequests={phase.myRequests}
@@ -219,16 +219,16 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
           storageKey="cp-hospital-sidebar-collapsed"
           footer={
             <>
-              <span className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+              <span className="font-mono text-[11px] font-semibold tracking-wide text-cp-text-muted uppercase dark:text-cp-text-muted-dark">
                 Acting within
               </span>
-              <span className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+              <span className="truncate text-sm font-semibold text-cp-text dark:text-cp-text-dark">
                 {user.hospital?.name ?? "No hospital selected"}
               </span>
             </>
           }
         />
-        <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
+        <div className="min-w-0 flex-1 overflow-y-auto bg-cp-workspace dark:bg-cp-workspace-dark">{children}</div>
       </div>
     </div>
   );

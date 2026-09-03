@@ -130,9 +130,9 @@ export default function HospitalAccessGate({ status, myRequests, onChanged, refr
           <Card className="w-full max-w-md text-center">
             <div className="flex flex-col items-center gap-3">
               <IconBadge icon={PauseCircle} tone="amber" />
-              <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Access paused</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Your access to <span className="font-medium text-slate-700 dark:text-slate-300">{currentHospitalName}</span>{" "}
+              <h1 className="text-xl font-semibold text-cp-text dark:text-cp-text-dark">Access paused</h1>
+              <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
+                Your access to <span className="font-medium text-cp-text dark:text-cp-text-dark">{currentHospitalName}</span>{" "}
                 has been temporarily paused by an administrator. Contact them to have it restored.
               </p>
               {error && (
@@ -160,12 +160,12 @@ export default function HospitalAccessGate({ status, myRequests, onChanged, refr
           <Card className="w-full max-w-md text-center">
             <div className="flex flex-col items-center gap-3">
               <IconBadge icon={Clock} />
-              <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Permission sent</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <h1 className="text-xl font-semibold text-cp-text dark:text-cp-text-dark">Permission sent</h1>
+              <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
                 Your request has been sent to the hospital administrator. Please wait for approval.
               </p>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                Hospital: <span className="font-medium text-slate-600 dark:text-slate-300">{currentHospitalName}</span>
+              <p className="text-xs text-cp-text-subtle dark:text-cp-text-subtle-dark">
+                Hospital: <span className="font-medium text-cp-text-muted dark:text-cp-text-muted-dark">{currentHospitalName}</span>
               </p>
               {error && (
                 <div className="w-full">
@@ -246,9 +246,9 @@ export default function HospitalAccessGate({ status, myRequests, onChanged, refr
               {filteredHospitals.map((hospital) => (
                 <li
                   key={hospital.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5 dark:border-slate-800"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-cp-border px-3 py-2.5 dark:border-cp-border-dark"
                 >
-                  <p className="min-w-0 truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                  <p className="min-w-0 truncate text-sm font-medium text-cp-text dark:text-cp-text-dark">
                     {hospital.name}
                   </p>
                   <Button
@@ -266,14 +266,16 @@ export default function HospitalAccessGate({ status, myRequests, onChanged, refr
 
         {myRequests.length > 0 && (
           <Card title="Your request history" description="Past requests, for reference." icon={ClipboardList}>
-            <ul className="divide-y divide-slate-200 dark:divide-slate-800">
+            <ul className="divide-y divide-cp-border dark:divide-cp-border-dark">
               {myRequests.map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                    <p className="truncate text-sm font-medium text-cp-text dark:text-cp-text-dark">
                       {r.hospitalName}
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Requested {formatDate(r.createdAt)}</p>
+                    <p className="font-mono text-xs text-cp-text-muted dark:text-cp-text-muted-dark">
+                      Requested {formatDate(r.createdAt)}
+                    </p>
                   </div>
                   <Badge tone={toneForStatus(r.status)}>{r.status}</Badge>
                 </li>

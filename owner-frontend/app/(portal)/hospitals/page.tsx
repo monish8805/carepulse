@@ -136,8 +136,8 @@ export default function HospitalsPage() {
   if (!loggedIn) {
     return (
       <PageContainer>
-        <p className="text-sm text-slate-600 dark:text-slate-300">
-          <Link href="/login" className="font-medium text-teal-700 hover:underline dark:text-teal-400">
+        <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
+          <Link href="/login" className="font-medium text-cp-primary hover:underline dark:text-cp-primary-dark">
             Log in
           </Link>{" "}
           to manage hospitals.
@@ -188,15 +188,15 @@ export default function HospitalsPage() {
           {hospitals.length === 0 ? (
             <EmptyState title="No hospitals yet" />
           ) : (
-            <ul className="divide-y divide-slate-200 dark:divide-slate-800">
+            <ul className="divide-y divide-cp-border dark:divide-cp-border-dark">
               {hospitals.map((h) => (
                 <li key={h.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{h.name}</p>
+                      <p className="truncate text-sm font-medium text-cp-text dark:text-cp-text-dark">{h.name}</p>
                       {!h.isActive && <Badge tone="neutral">disabled</Badge>}
                     </div>
-                    <p className="mt-0.5 font-mono text-xs text-slate-500 dark:text-slate-400">Hospital ID: {h.id}</p>
+                    <p className="mt-0.5 font-mono text-xs text-cp-text-muted dark:text-cp-text-muted-dark">Hospital ID: {h.id}</p>
                   </div>
                   <div className="flex shrink-0 gap-2">
                     <Button
@@ -219,8 +219,8 @@ export default function HospitalsPage() {
 
       <Modal open={!!hospitalToDelete} onClose={() => setHospitalToDelete(null)} title="Delete hospital">
         <div className="space-y-3">
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            Delete <span className="font-medium text-slate-900 dark:text-slate-100">{hospitalToDelete?.name}</span>?
+          <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
+            Delete <span className="font-medium text-cp-text dark:text-cp-text-dark">{hospitalToDelete?.name}</span>?
             This permanently deletes the hospital along with every staff and admin membership and every access role
             tied to it. Their accounts stay — they just lose access to this hospital. This cannot be undone.
           </p>

@@ -96,17 +96,17 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
           storageKey="cp-owner-sidebar-collapsed"
           footer={
             <>
-              <span className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+              <span className="font-mono text-[11px] font-semibold tracking-wide text-cp-text-muted uppercase dark:text-cp-text-muted-dark">
                 Signed in as
               </span>
-              <span className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+              <span className="truncate text-sm font-semibold text-cp-text dark:text-cp-text-dark">
                 {user.name}
               </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400">Platform owner</span>
+              <span className="text-xs text-cp-text-muted dark:text-cp-text-muted-dark">Platform owner</span>
             </>
           }
         />
-        <div className="min-w-0 flex-1 overflow-y-auto">{children}</div>
+        <div className="min-w-0 flex-1 overflow-y-auto bg-cp-workspace dark:bg-cp-workspace-dark">{children}</div>
       </div>
     </div>
   );

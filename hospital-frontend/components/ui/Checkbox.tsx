@@ -16,10 +16,10 @@ export default function Checkbox({ label, id, className = "", ...props }: Checkb
       <input
         id={inputId}
         type="checkbox"
-        className="h-4 w-4 shrink-0 rounded border-slate-300 text-teal-700 focus:ring-2 focus:ring-teal-600 focus:ring-offset-1 dark:border-slate-600 dark:bg-slate-900"
+        className="h-4 w-4 shrink-0 rounded border-cp-input-border text-cp-primary focus:ring-2 focus:ring-cp-focus-ring focus:ring-offset-1 dark:border-cp-input-border-dark dark:bg-cp-input-dark dark:text-cp-primary-dark"
         {...props}
       />
-      <label htmlFor={inputId} className="text-sm text-slate-700 dark:text-slate-300">
+      <label htmlFor={inputId} className="text-sm text-cp-text dark:text-cp-text-dark">
         {label}
       </label>
     </div>

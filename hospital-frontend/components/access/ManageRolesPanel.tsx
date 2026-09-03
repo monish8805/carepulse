@@ -114,7 +114,7 @@ export default function ManageRolesPanel({ accessRoles, onChanged }: ManageRoles
     return (
       <div className="space-y-4">
         <Divider />
-        <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Edit &quot;{view.role.name}&quot;</h4>
+        <h4 className="text-sm font-semibold text-cp-text dark:text-cp-text-dark">Edit &quot;{view.role.name}&quot;</h4>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {PERMISSIONS.map((permission) => (
             <Checkbox
@@ -142,8 +142,8 @@ export default function ManageRolesPanel({ accessRoles, onChanged }: ManageRoles
     return (
       <div className="space-y-3">
         <Divider />
-        <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Delete role</h4>
-        <p className="text-sm text-slate-600 dark:text-slate-300">
+        <h4 className="text-sm font-semibold text-cp-text dark:text-cp-text-dark">Delete role</h4>
+        <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
           Delete &quot;{view.role.name}&quot;? This can&apos;t be undone. If any active staff member currently holds
           this role, deletion will be blocked.
         </p>
@@ -200,17 +200,17 @@ export default function ManageRolesPanel({ accessRoles, onChanged }: ManageRoles
         {accessRoles.length === 0 ? (
           <EmptyState title="No roles yet" />
         ) : (
-          <ul className="divide-y divide-slate-200 border-t border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+          <ul className="divide-y divide-cp-border border-t border-cp-border dark:divide-cp-border-dark dark:border-cp-border-dark">
             {accessRoles.map((role) => (
               <li key={role.id} className="flex items-center justify-between gap-3 py-3 first:pt-3 last:pb-0">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="truncate font-medium text-slate-900 dark:text-slate-100">{role.name}</p>
+                    <p className="truncate font-medium text-cp-text dark:text-cp-text-dark">{role.name}</p>
                     <Badge tone={role.isActive ? "success" : "neutral"}>
                       {role.isActive ? "active" : "inactive"}
                     </Badge>
                   </div>
-                  <p className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400">
+                  <p className="mt-0.5 truncate text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
                     {role.permissions.length > 0
                       ? role.permissions.map(formatPermissionLabel).join(", ")
                       : "No permissions"}

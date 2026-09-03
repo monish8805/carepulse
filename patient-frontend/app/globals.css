@@ -1,5 +1,76 @@
 @import "tailwindcss";
 
+/* CarePulse visual system — exact tokens (see DESIGN.md). Every token has a
+   light value here and a `-dark` counterpart; Tailwind v4's @theme doesn't
+   support a conditional value per token, so a dark surface/color is always
+   applied as an explicit `dark:bg-cp-x-dark` class alongside `bg-cp-x`, using
+   the same `dark:` custom-variant mechanism already set up below. Do not
+   approximate these with stock Tailwind slate/teal/etc. classes, and don't
+   add a shade that isn't one of the values below.
+*/
+@theme {
+  --color-cp-page: #edf3f3;
+  --color-cp-page-dark: #152326;
+  --color-cp-workspace: #f5faf9;
+  --color-cp-workspace-dark: #1b2d30;
+  --color-cp-sidebar: #f7fbfa;
+  --color-cp-sidebar-dark: #203437;
+  --color-cp-card: #fbfdfc;
+  --color-cp-card-dark: #243b3d;
+  --color-cp-input: #ffffff;
+  --color-cp-input-dark: #2a4345;
+
+  --color-cp-primary: #087f78;
+  --color-cp-primary-dark: #25a79d;
+  --color-cp-primary-hover: #06625f;
+  --color-cp-primary-hover-dark: #68cec2;
+  --color-cp-nav-selected: #dff2ef;
+  --color-cp-nav-selected-dark: #174a47;
+  --color-cp-icon-soft: #e1f3f0;
+  --color-cp-icon-soft-dark: #1f514d;
+  --color-cp-avatar: #ccebe7;
+  --color-cp-avatar-dark: #2b6661;
+
+  --color-cp-text: #17343a;
+  --color-cp-text-dark: #e7f2f0;
+  --color-cp-text-muted: #6b7f83;
+  --color-cp-text-muted-dark: #a8bfbe;
+  --color-cp-text-subtle: #6b7f83;
+  --color-cp-text-subtle-dark: #829b9c;
+
+  --color-cp-border: #d8e5e4;
+  --color-cp-border-dark: #395456;
+  --color-cp-input-border: #cbdcdb;
+  --color-cp-input-border-dark: #4c6869;
+  --color-cp-focus-border: #62b9b1;
+  --color-cp-focus-border-dark: #72cdc3;
+  --color-cp-focus-ring: #bde9e4;
+  --color-cp-focus-ring-dark: #234d4a;
+
+  --color-cp-success-bg: #f1fbf4;
+  --color-cp-success-bg-dark: #183a2b;
+  --color-cp-success-text: #197445;
+  --color-cp-success-text-dark: #94d8a9;
+  --color-cp-connected-bg: #edf9f0;
+  --color-cp-connected-bg-dark: #193a2a;
+  --color-cp-connected-text: #21834d;
+  --color-cp-connected-text-dark: #91d5a5;
+  --color-cp-pending-bg: #fff7e6;
+  --color-cp-pending-bg-dark: #4a391e;
+  --color-cp-pending-text: #aa6b13;
+  --color-cp-pending-text-dark: #f2c66d;
+  --color-cp-quiet-bg: #f9fcfb;
+  --color-cp-quiet-bg-dark: #1e3435;
+  /* No light value was given for error/destructive — left as the existing
+     Tailwind red-* classes at every usage site, unchanged. Only dark was
+     given, so only the dark token exists here. */
+  --color-cp-error-bg-dark: #48292b;
+  --color-cp-error-text-dark: #f2a5a5;
+
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, "SFMono-Regular", monospace;
+}
+
 /* Switches `dark:` from Tailwind's default `prefers-color-scheme` media query
    to a manual `.dark` class on <html> — required for the in-app light/dark
    toggle (ThemeToggle) to actually override the OS setting. The class itself
