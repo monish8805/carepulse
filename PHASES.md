@@ -25,12 +25,15 @@ Order matters: the authorization foundation comes before any hospital-operations
 - **Staff management: list + remove ✅ Done.** `GET`/`DELETE /api/hospital/staff` (`/:id`) — not originally planned for this phase, added on request. An admin can remove any staff member; a staff member whose current AccessRole includes `staff.manage` can also remove *other* staff, but not another `staff.manage` holder (peer protection) and never the admin. Removal sets `HospitalMembership.status` to a new `"removed"` value rather than deleting the row — unlike `rejected`, it's not terminal: a removed member can request access again, landing back in `pending`. See ARCHITECTURE.md's "Staff management" section and CLAUDE.md.
 - Let a rejected staff member re-request access (removed members already can, see above), and let an admin change an already-active staff member's `AccessRole`.
 - Basic per-portal dashboards (currently all three portals are bare status pages, now properly styled inside the shell; the Hospital Portal now also needs a minimal way to submit/view a request and for an admin to review one — the Access & Roles page already covers this at a basic level).
+- **Hospital access-request flow turned into a real access gate ✅ Done.** `HospitalLayout` re-derives the session's current membership status fresh from the backend on every load and only ever shows the shell once it's `active` — an unaffiliated/pending/disabled session sees nothing but a request/waiting screen (`components/access/HospitalAccessGate.tsx`), designed as onboarding rather than a restricted-access wall. The old standalone `/access-request` page and its account-menu entry are gone — this is automatic now, not something to navigate to. See ARCHITECTURE.md.
+- **Patient ↔ doctor data-sharing consent gateway ✅ Done, ahead of schedule** (pulled forward from Phase 3 below, since it doesn't depend on the patient record/vitals model existing first): email-based doctor lookup, grant/edit(patient-only)/revoke(either side), a validated data-category catalogue, and doctor-side visibility gated by the (previously unused) `patient.view` permission. See PRD.md and ARCHITECTURE.md. No medical data exists yet — this is the relationship only.
+- CarePulse visual design system: an exact named color-token palette (light + dark) and DM Sans/Space Mono typography, applied consistently across all three frontends via Tailwind v4 `@theme` tokens. See DESIGN.md.
 
 ## Phase 3 — Patient Data & Consent
 
 - Patient record data model.
-- Patient consent: granting/viewing/revoking which hospitals/staff can access their data.
-- Vitals data model and capture.
+- ~~Patient consent: granting/viewing/revoking which hospitals/staff can access their data~~ — the consent *gateway* was pulled forward into Phase 2 (see above), ahead of any patient data existing for it to actually gate.
+- Vitals data model and capture — its read endpoints must check the Phase 2 consent grants (category + doctor's live permission), not just build the data model in isolation.
 
 ## Phase 4 — Monitoring & Visualization
 

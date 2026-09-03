@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Activity, UserRound, Settings } from "lucide-react";
 import type { SessionUser, MyAccessRequest } from "@shared/types";
 import { restoreSession, getMe, logout, getBackendHealth, listMyAccessRequests, selectHospital } from "@/lib/api";
@@ -47,6 +47,7 @@ function BrandMark() {
 // for it.
 export default function HospitalLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [phase, setPhase] = useState<Phase>({ kind: "checking" });
   const [refreshKey, setRefreshKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -193,7 +194,7 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
   // phase.kind === "active"
   const user = phase.user;
   const accountMenuItems: AccountMenuItem[] = [
-    { label: "Profile", icon: UserRound, disabled: true, hint: "Coming soon" },
+    { label: "Profile", icon: UserRound, onClick: () => router.push("/profile"), active: pathname === "/profile" },
     { label: "Settings", icon: Settings, disabled: true, hint: "Coming soon" },
   ];
 

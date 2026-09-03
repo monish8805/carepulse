@@ -11,6 +11,9 @@ import type {
   StaffMember,
   AddStaffResult,
   Role,
+  DoctorLookupResult,
+  PatientConsent,
+  GrantedPatientSummary,
 } from "./types";
 
 // Shared client for the backend auth API. Every frontend passes its own
@@ -140,6 +143,51 @@ export async function logout(baseUrl: string, portal: Role): Promise<void> {
 export async function getMe(baseUrl: string): Promise<SessionUser> {
   const data = await apiFetch<{ user: SessionUser }>(baseUrl, "/api/auth/me");
   return data.user;
+}
+
+// Patient Portal only, below this point: the data-sharing consent gateway
+// (backend's domain/patientConsent.service.ts). The Patient Portal's first
+// real API surface beyond shared auth.
+
+// Looks up a real, currently-active hospital doctor by email — the same
+// generic 404 whether the email doesn't exist, isn't a hospital account, or
+// has no active hospital membership right now (never confirms which).
+export async function lookupDoctor(baseUrl: string, email: string): Promise<DoctorLookupResult> {
+  const data = await apiFetch<{ doctor: DoctorLookupResult }>(
+    baseUrl,
+    `/api/patient/doctors?email=${encodeURIComponent(email)}`
+  );
+  return data.doctor;
+}
+
+export function grantConsent(
+  baseUrl: string,
+  input: { doctorEmail: string; dataCategories: string[] }
+): Promise<{ message: string; grant: PatientConsent }> {
+  return apiFetch(baseUrl, "/api/patient/consents", { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function listMyConsents(baseUrl: string): Promise<PatientConsent[]> {
+  const data = await apiFetch<{ grants: PatientConsent[] }>(baseUrl, "/api/patient/consents");
+  return data.grants;
+}
+
+// Patient-only — the backend's PATCH /api/patient/consents/:id route only
+// ever accepts a Patient Portal session; a doctor's own token can't reach it
+// (requirePortal("patient") rejects it before any business logic runs).
+export function updateConsent(
+  baseUrl: string,
+  grantId: string,
+  dataCategories: string[]
+): Promise<{ message: string; grant: PatientConsent }> {
+  return apiFetch(baseUrl, `/api/patient/consents/${grantId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ dataCategories }),
+  });
+}
+
+export function revokeConsentAsPatient(baseUrl: string, grantId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/patient/consents/${grantId}/revoke`, { method: "POST" });
 }
 
 // Hospital Portal only, below this point.
@@ -284,6 +332,29 @@ export function addStaff(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+// Self-service profile edit — any authenticated Hospital Portal session, no
+// permission gate (see backend's controllers/hospital.controller.ts::updateProfile).
+export function updateProfile(
+  baseUrl: string,
+  input: { specialization: string }
+): Promise<{ message: string; user: AuthUser }> {
+  return apiFetch(baseUrl, "/api/hospital/profile", { method: "PATCH", body: JSON.stringify(input) });
+}
+
+// Patients who've granted this doctor access — requires patient.view
+// (HospitalContext.canViewPatients), display/gating only; the backend
+// re-resolves the permission fresh regardless of what the frontend shows.
+export async function listGrantedPatients(baseUrl: string): Promise<GrantedPatientSummary[]> {
+  const data = await apiFetch<{ patients: GrantedPatientSummary[] }>(baseUrl, "/api/hospital/patient-consents");
+  return data.patients;
+}
+
+// A doctor giving up access they hold — never gated by patient.view (see
+// backend's routes/hospital.routes.ts note: revoking is never a privilege concern).
+export function revokeConsentAsDoctor(baseUrl: string, grantId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/hospital/patient-consents/${grantId}/revoke`, { method: "POST" });
 }
 
 // Owner Portal only, below this point.

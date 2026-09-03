@@ -3,11 +3,14 @@ import * as hospitalController from "../controllers/hospital.controller";
 import * as accessRoleController from "../controllers/accessRole.controller";
 import * as accessRequestController from "../controllers/accessRequest.controller";
 import * as staffController from "../controllers/staff.controller";
+import * as patientConsentController from "../controllers/patientConsent.controller";
 import * as validate from "../validators/hospital.validator";
 import * as validateAccessRole from "../validators/accessRole.validator";
 import * as validateAccessRequest from "../validators/accessRequest.validator";
 import * as validateStaff from "../validators/staff.validator";
+import * as validatePatientConsent from "../validators/patientConsent.validator";
 import { requireAuth, requirePortal } from "../middleware/auth.middleware";
+import { requirePermission } from "../middleware/permission.middleware";
 
 const router = Router();
 
@@ -59,5 +62,18 @@ router.post("/access-requests/:id/reject", accessRequestController.rejectAccessR
 // User-scoped, not hospital-scoped — same as create/list-mine above (see
 // accessRequestService.cancelRequest).
 router.post("/access-requests/:id/cancel", accessRequestController.cancelAccessRequest);
+
+// Self-service profile edit (specialization only, for now) — any
+// authenticated Hospital Portal session, no permission gate.
+router.patch("/profile", validatePatientConsent.validateUpdateProfile, hospitalController.updateProfile);
+
+// Patient data-sharing consent (domain/patientConsent.service.ts): the
+// doctor's-eye view of who has granted them access. Gated by the
+// currently-unused-until-now patient.view permission, resolved fresh per
+// request like every other requirePermission check — never cached, never
+// read from the JWT. Revoking is deliberately NOT gated by patient.view:
+// giving up access you hold is never a privilege concern.
+router.get("/patient-consents", requirePermission("patient.view"), patientConsentController.listGrantedToMe);
+router.post("/patient-consents/:id/revoke", patientConsentController.revokeGrant);
 
 export default router;

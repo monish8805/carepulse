@@ -6,6 +6,10 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  // Free-text, self-described (see backend's models/user.model.ts) — only
+  // ever meaningful for a hospital-role account, but present on any portal
+  // since it's descriptive text, not access-sensitive.
+  specialization?: string | null;
 }
 
 export interface HospitalContext {
@@ -17,6 +21,11 @@ export interface HospitalContext {
   // Resolved server-side, display/gating only — the backend still enforces
   // every actual staff-management request independently.
   canManageStaff: boolean;
+  // Whether this session currently holds patient.view — gates seeing which
+  // patients have granted this doctor data access. Resolved server-side,
+  // display/gating only; NOT automatically true for role: "admin" (unlike
+  // canManageStaff) — see backend's domain/hospital.service.ts.
+  canViewPatients: boolean;
 }
 
 // What GET /me returns: scoped to whichever portal the session was authenticated
@@ -95,6 +104,46 @@ export interface AddStaffResult {
   // Whether a brand-new account was created (and so a temporary password was
   // emailed) — false for an existing account, which keeps its own password.
   createdNewUser: boolean;
+}
+
+// Patient <-> doctor data-sharing consent, below this point (Patient Portal +
+// Hospital Portal). Mirrors backend/config/dataCategories.ts — kept here
+// (not imported from the backend) since frontend and backend are separate
+// builds, same reasoning as the PERMISSIONS mirror above. No medical
+// features exist yet (see PHASES.md), so this starts with the two categories
+// already anticipated; add new ones here as real data features land.
+export const DATA_CATEGORIES = ["vitals.continuous", "vitals.occasional"] as const;
+
+// Patient-facing: what a doctor-email lookup resolves to, before granting.
+export interface DoctorLookupResult {
+  doctorId: string;
+  name: string;
+  specialization: string | null;
+  hospitalName: string;
+}
+
+// One row in the patient's own "My shared access" list — any status, their
+// full sharing history for this doctor.
+export interface PatientConsent {
+  id: string;
+  doctorId: string;
+  doctorName: string;
+  doctorSpecialization: string | null;
+  // The doctor's CURRENT hospital, resolved fresh — null if they no longer
+  // have one (e.g. removed since the grant was made).
+  hospitalName: string | null;
+  dataCategories: string[];
+  status: "active" | "revoked";
+  createdAt: string;
+}
+
+// One row in a doctor's "Patients" list — only ever active grants naming them.
+export interface GrantedPatientSummary {
+  id: string;
+  patientId: string;
+  patientName: string;
+  dataCategories: string[];
+  createdAt: string;
 }
 
 // Owner Portal only, below this point.

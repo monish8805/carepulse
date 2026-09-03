@@ -122,3 +122,15 @@ export function enableStaffMember(membershipId: string) {
 export function updateStaffRole(membershipId: string, accessRoleId: string) {
   return sharedApi.updateStaffRole(BACKEND_URL, membershipId, accessRoleId);
 }
+
+export function updateProfile(input: { specialization: string }) {
+  return sharedApi.updateProfile(BACKEND_URL, input);
+}
+
+export function listGrantedPatients() {
+  return sharedApi.listGrantedPatients(BACKEND_URL);
+}
+
+export function revokeConsentAsDoctor(grantId: string) {
+  return sharedApi.revokeConsentAsDoctor(BACKEND_URL, grantId);
+}

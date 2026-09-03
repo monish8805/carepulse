@@ -46,3 +46,25 @@ export function getMe() {
 export function logout() {
   return sharedApi.logout(BACKEND_URL, ROLE);
 }
+
+// Data-sharing consent gateway — below this point.
+
+export function lookupDoctor(email: string) {
+  return sharedApi.lookupDoctor(BACKEND_URL, email);
+}
+
+export function grantConsent(input: { doctorEmail: string; dataCategories: string[] }) {
+  return sharedApi.grantConsent(BACKEND_URL, input);
+}
+
+export function listMyConsents() {
+  return sharedApi.listMyConsents(BACKEND_URL);
+}
+
+export function updateConsent(grantId: string, dataCategories: string[]) {
+  return sharedApi.updateConsent(BACKEND_URL, grantId, dataCategories);
+}
+
+export function revokeConsentAsPatient(grantId: string) {
+  return sharedApi.revokeConsentAsPatient(BACKEND_URL, grantId);
+}

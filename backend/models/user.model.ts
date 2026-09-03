@@ -42,6 +42,13 @@ const userSchema = new Schema(
     // User can be created (e.g. an Owner-provisioned hospital administrator
     // never supplies one).
     phone: { type: String, trim: true },
+    // Free-text, self-described, optional — only ever meaningful for a
+    // hospital-role account (e.g. "Gynaecologist", "RMP"). Deliberately never
+    // a fixed enum of clinical job titles, per the standing rule elsewhere in
+    // this codebase against hardcoding those (see CLAUDE.md). Shown to a
+    // patient looking up a doctor before granting data access
+    // (domain/patientConsent.service.ts::lookupDoctorByEmail).
+    specialization: { type: String, trim: true },
     passwordHash: { type: String, required: true },
     roles: { type: [String], enum: ROLES, default: [] },
     isVerified: { type: Boolean, default: false },

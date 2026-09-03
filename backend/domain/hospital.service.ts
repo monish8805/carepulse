@@ -32,12 +32,25 @@ export interface HospitalContext {
   // lets the frontend decide whether to show staff-management UI without
   // duplicating this logic or exposing raw permissions. See domain/staff.service.ts.
   canManageStaff: boolean;
+  // Whether this session currently holds patient.view — gates seeing which
+  // patients have granted this doctor data access (domain/patientConsent.service.ts::
+  // listGrantedToMe). Unlike canManageStaff, role: "admin" is NOT automatically
+  // true here: patient.view is a clinical permission from the AccessRole
+  // system, not a hospital-management action an admin inherently holds (see
+  // CLAUDE.md's admin-vs-AccessRole distinction) — an admin sees patients only
+  // if their own AccessRole grants it, same as any other staff member.
+  canViewPatients: boolean;
 }
 
 async function resolveCanManageStaff(userId: string, hospitalId: string, role: string): Promise<boolean> {
   if (role === "admin") return true;
   const permissions = await resolvePermissions(userId, hospitalId);
   return permissions.includes("staff.manage");
+}
+
+async function resolveCanViewPatients(userId: string, hospitalId: string): Promise<boolean> {
+  const permissions = await resolvePermissions(userId, hospitalId);
+  return permissions.includes("patient.view");
 }
 
 export async function listActiveMemberships(userId: string): Promise<HospitalMembershipSummary[]> {
@@ -71,11 +84,13 @@ export async function verifyActiveMembership(userId: string, hospitalId: string)
   }
 
   const canManageStaff = await resolveCanManageStaff(userId, hospitalId, membership.role);
+  const canViewPatients = await resolveCanViewPatients(userId, hospitalId);
   return {
     id: membership.hospitalId._id.toString(),
     name: membership.hospitalId.name,
     role: membership.role,
     canManageStaff,
+    canViewPatients,
   };
 }
 
@@ -96,11 +111,13 @@ export async function getCurrentHospitalContext(
   if (!membership || !membership.hospitalId.isActive) return null;
 
   const canManageStaff = await resolveCanManageStaff(userId, hospitalId, membership.role);
+  const canViewPatients = await resolveCanViewPatients(userId, hospitalId);
   return {
     id: membership.hospitalId._id.toString(),
     name: membership.hospitalId.name,
     role: membership.role,
     canManageStaff,
+    canViewPatients,
   };
 }
 

@@ -13,6 +13,11 @@ interface PublicUser {
   id: string;
   name: string;
   email: string;
+  // Free-text, self-described (see models/user.model.ts) — present whenever
+  // set, on any portal. Unlike `roles`/hospital context, this isn't
+  // access-sensitive: it's just descriptive text, so there's no portal-
+  // isolation reason to hide it.
+  specialization?: string | null;
 }
 
 interface AuthSession {
@@ -24,8 +29,13 @@ interface AuthSession {
 // Deliberately does NOT include the account's global `roles` array. A user's other
 // portal memberships (e.g. also being hospital staff) must never be visible from
 // a session authenticated through a different portal.
-function toPublicUser(user: { _id: unknown; name: string; email: string }): PublicUser {
-  return { id: String(user._id), name: user.name, email: user.email };
+function toPublicUser(user: {
+  _id: unknown;
+  name: string;
+  email: string;
+  specialization?: string | null;
+}): PublicUser {
+  return { id: String(user._id), name: user.name, email: user.email, specialization: user.specialization ?? null };
 }
 
 // Used for the OTP/password read-modify-write paths below, which need async
@@ -364,6 +374,21 @@ export async function resetPassword(input: { email: string; code: string; newPas
   );
 
   return { message: "Password reset. You can now log in." };
+}
+
+// Self-service profile edit — a hospital-role account describing themselves
+// (e.g. "Gynaecologist"), shown to a patient looking them up before granting
+// data access (domain/patientConsent.service.ts::lookupDoctorByEmail). Low
+// frequency (a user isn't firing concurrent profile edits), so this uses
+// withVersionRetry like the other identity writes above, not an atomic op.
+export async function updateSpecialization(userId: string, specialization: string): Promise<PublicUser> {
+  const { user } = await withVersionRetry(
+    () => UserModel.findById(userId),
+    (u) => {
+      u.specialization = specialization.trim();
+    }
+  );
+  return toPublicUser(user);
 }
 
 export async function getUserById(id: string): Promise<PublicUser> {

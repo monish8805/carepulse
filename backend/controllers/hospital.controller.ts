@@ -49,3 +49,16 @@ export async function selectHospital(req: AuthenticatedRequest, res: Response, n
     next(err);
   }
 }
+
+// Any authenticated Hospital Portal session may edit their own specialization
+// — it's just self-describing text (see models/user.model.ts), not gated by
+// any permission or admin/staff distinction.
+export async function updateProfile(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const { specialization } = req.body as { specialization: string };
+    const user = await authService.updateSpecialization(req.userId!, specialization);
+    res.status(200).json({ message: "Profile updated.", user });
+  } catch (err) {
+    next(err);
+  }
+}
