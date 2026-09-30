@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Activity } from "lucide-react";
 import { register, verifyOtp } from "@/lib/api";
-import { Alert, Button, Card, Stepper, TextField, ThemeToggle } from "@/components/ui";
+import { Alert, Button, Card, Stepper, TextField, ThemeToggle } from "@carepulse/ui";
 
 const STEP_LABELS = ["Details", "Password", "Verify"];
 

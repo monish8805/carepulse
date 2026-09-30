@@ -4,7 +4,7 @@ Order matters: the authorization foundation comes before any hospital-operations
 
 ## Phase 1 — Foundation & Authorization ✅ Done
 
-- Backend scaffold, layer-based structure, three separate frontends, shared code via `shared/`.
+- Backend scaffold, layer-based structure, three separate frontends, shared code via `shared/` (now `packages/` — an npm workspaces monorepo).
 - One `User` identity; additive roles (patient/hospital/owner), not mutually exclusive.
 - Registration + OTP verification, login/logout, forgot/reset password.
 - Dual-token auth (short-lived access JWT + rotating opaque refresh token).

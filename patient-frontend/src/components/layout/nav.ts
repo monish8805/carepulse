@@ -1,5 +1,5 @@
 import { Home, ShieldCheck } from "lucide-react";
-import type { NavSection } from "./Sidebar";
+import type { NavSection } from "@carepulse/portal";
 
 // Config-driven nav, kept next to PatientLayout rather than inside the
 // generic Sidebar component. Only lists routes that actually exist today —

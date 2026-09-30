@@ -2,16 +2,13 @@ import { lazy, Suspense, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { Activity, UserRound, Settings } from "lucide-react";
-import type { SessionUser, MyAccessRequest } from "@shared/types";
+import type { SessionUser, MyAccessRequest } from "@carepulse/api/types";
 import { getMe, logout, listMyAccessRequests, selectHospital } from "@/lib/api";
 import { healthQuery } from "@/lib/queries";
-import { useSession } from "@/lib/session";
-import { broadcastAuth, useAuthSync } from "@/lib/authSync";
-import Header from "./Header";
-import Sidebar from "./Sidebar";
-import type { AccountMenuItem } from "./AccountMenu";
+import { useSession, broadcastAuth, useAuthSync, Header, Sidebar } from "@carepulse/portal";
+import type { AccountMenuItem } from "@carepulse/portal";
 import { HOSPITAL_NAV_SECTIONS } from "./nav";
-import { Alert, Button, Card, LoadingState } from "@/components/ui";
+import { Alert, Button, Card, LoadingState } from "@carepulse/ui";
 
 // Only a session without an active membership ever sees the gate, so staff
 // who are already in never download it.

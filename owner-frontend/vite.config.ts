@@ -9,7 +9,10 @@ export default defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
     // Dev-only: strips the <TanStackDevtools /> panel out of production builds.
-    devtools(),
+    // Console piping is off: it forwards browser logs to the terminal AND
+    // terminal logs back to the browser, so a single client console.error
+    // echoes between the two forever and floods the dev server output.
+    devtools({ consolePiping: { enabled: false } }),
     tailwindcss(),
     // SPA mode: every page is rendered in the browser only. The access token is
     // a module-level variable in shared/api.ts, and the refresh cookie is sent

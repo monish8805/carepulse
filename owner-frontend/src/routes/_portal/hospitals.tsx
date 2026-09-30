@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PlusCircle, Building2 } from "lucide-react";
-import type { Hospital } from "@shared/types";
+import type { Hospital } from "@carepulse/api/types";
 import { createHospital, disableHospital, enableHospital, deleteHospital } from "@/lib/api";
-import { useSession } from "@/lib/session";
-import { hospitalsQuery as hospitalsQueryOptions, prefetch } from "@/lib/queries";
+import { useSession, prefetch } from "@carepulse/portal";
+import { hospitalsQuery as hospitalsQueryOptions } from "@/lib/queries";
 import {
   Alert,
   Badge,
@@ -19,7 +19,7 @@ import {
   PageHeader,
   TextField,
   useToast,
-} from "@/components/ui";
+} from "@carepulse/ui";
 
 export const Route = createFileRoute("/_portal/hospitals")({
   loader: ({ context }) => prefetch(context.queryClient, hospitalsQueryOptions),

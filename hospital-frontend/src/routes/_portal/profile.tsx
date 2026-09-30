@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { UserRound } from "lucide-react";
-import type { SessionUser } from "@shared/types";
+import type { SessionUser } from "@carepulse/api/types";
 import { updateProfile } from "@/lib/api";
 import { useMe } from "@/lib/session";
-import { Alert, Button, Card, LoadingState, PageContainer, PageHeader, TextField, useToast } from "@/components/ui";
+import { Alert, Button, Card, LoadingState, PageContainer, PageHeader, TextField, useToast } from "@carepulse/ui";
 
 // A single self-service field for now: specialization (e.g. "Gynaecologist",
 // "Neurologist", "RMP") — free text, never a fixed clinical-title enum (see

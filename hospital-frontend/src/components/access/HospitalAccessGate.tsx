@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Search, ClipboardList, Clock, PauseCircle } from "lucide-react";
-import type { Hospital, MyAccessRequest } from "@shared/types";
+import type { Hospital, MyAccessRequest } from "@carepulse/api/types";
 import { listAllHospitals, requestHospitalAccess, cancelAccessRequest } from "@/lib/api";
 import {
   Alert,
@@ -17,7 +17,7 @@ import {
   PageHeader,
   Stepper,
   toneForStatus,
-} from "@/components/ui";
+} from "@carepulse/ui";
 
 // Mirrors the backend's actual rule (domain/accessRequest.service.ts::
 // requestAccess): pending/active/rejected block a new request; removed and

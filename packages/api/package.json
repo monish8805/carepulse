@@ -1,0 +1,9 @@
+{
+  "name": "@carepulse/api",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/api.ts",
+    "./types": "./src/types.ts"
+  }
+}

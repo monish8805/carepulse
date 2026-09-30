@@ -2,16 +2,16 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Search, ClipboardList } from "lucide-react";
-import { DATA_CATEGORIES } from "@shared/types";
-import type { DoctorLookupResult, PatientConsent } from "@shared/types";
+import { DATA_CATEGORIES } from "@carepulse/api/types";
+import type { DoctorLookupResult, PatientConsent } from "@carepulse/api/types";
 import {
   lookupDoctor,
   grantConsent,
   updateConsent,
   revokeConsentAsPatient,
 } from "@/lib/api";
-import { useSession } from "@/lib/session";
-import { consentsQuery, prefetch } from "@/lib/queries";
+import { useSession, prefetch } from "@carepulse/portal";
+import { consentsQuery } from "@/lib/queries";
 import {
   Alert,
   Avatar,
@@ -29,7 +29,7 @@ import {
   SkeletonList,
   toneForStatus,
   useToast,
-} from "@/components/ui";
+} from "@carepulse/ui";
 
 // "vitals.continuous" -> "Vitals — Continuous", matching the category
 // catalogue in backend/config/dataCategories.ts to a readable label — same

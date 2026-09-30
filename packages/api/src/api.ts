@@ -1,0 +1,443 @@
+import type {
+  AuthUser,
+  SessionUser,
+  HospitalContext,
+  HospitalMembership,
+  Hospital,
+  CreateHospitalResult,
+  AccessRole,
+  AccessRequest,
+  MyAccessRequest,
+  StaffMember,
+  AddStaffResult,
+  Role,
+  DoctorLookupResult,
+  PatientConsent,
+  GrantedPatientSummary,
+} from "./types";
+
+// Shared client for the backend API (@carepulse/api). Every frontend passes
+// its own backend base URL (from VITE_API_URL) so this file has no per-app config.
+
+// The access token is kept only in memory (a module variable) — never in
+// localStorage or a readable cookie. It's lost on page reload by design;
+// restoreSession() gets a new one from the refresh cookie on app load.
+let accessToken: string | null = null;
+
+export function getAccessToken(): string | null {
+  return accessToken;
+}
+
+// The portal whose refresh cookie apiFetch may use to recover from an expired
+// access token. Each app registers its own once (see its src/lib/api.ts) —
+// one portal per app, never switched at runtime.
+let refreshTarget: { baseUrl: string; portal: Role } | null = null;
+
+export function setRefreshPortal(baseUrl: string, portal: Role) {
+  refreshTarget = { baseUrl, portal };
+}
+
+// restoreSession() for the portal this app registered — lets shared code (the
+// useSession hook in @carepulse/portal) restore a session without knowing
+// which portal it's running in.
+export function restoreRegisteredSession(): Promise<AuthUser | null> {
+  if (!refreshTarget) throw new Error("setRefreshPortal() must run before restoreRegisteredSession().");
+  return restoreSession(refreshTarget.baseUrl, refreshTarget.portal);
+}
+
+// Called when a 401 couldn't be recovered (the refresh cookie is gone or was
+// revoked), so the app can drop its cached session and show the logged-out
+// state instead of an error.
+let sessionLostListener: (() => void) | null = null;
+
+export function onSessionLost(listener: () => void) {
+  sessionLostListener = listener;
+}
+
+// Endpoints whose 401 means "bad credentials / no session", not "access token
+// expired" — retrying them after a refresh would be wrong (or loop).
+const NO_REFRESH_PATHS = ["/api/auth/login", "/api/auth/refresh", "/api/auth/logout"];
+
+async function send(baseUrl: string, path: string, options: RequestInit): Promise<Response> {
+  const headers = new Headers(options.headers);
+  headers.set("Content-Type", "application/json");
+  if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+
+  return fetch(`${baseUrl}${path}`, {
+    ...options,
+    headers,
+    credentials: "include", // sends/receives the HttpOnly refresh-token cookie
+  });
+}
+
+async function apiFetch<T>(baseUrl: string, path: string, options: RequestInit = {}): Promise<T> {
+  const sentWith = accessToken;
+  let response = await send(baseUrl, path, options);
+
+  // The access token lives 15 minutes. When it has expired, trade the refresh
+  // cookie for a new one (through restoreSession's shared in-flight promise)
+  // and retry once. If another request already renewed the token while this
+  // one was in flight, just retry with that — a burst of 401s whose answers
+  // straggle in after the refresh finished must not each refresh again.
+  if (response.status === 401 && refreshTarget && !NO_REFRESH_PATHS.includes(path)) {
+    const renewedMeanwhile = accessToken !== null && accessToken !== sentWith;
+    const renewed = renewedMeanwhile || (await restoreSession(refreshTarget.baseUrl, refreshTarget.portal)) !== null;
+    if (renewed) response = await send(baseUrl, path, options);
+    else sessionLostListener?.();
+  }
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message || "Something went wrong.");
+  }
+  return data as T;
+}
+
+export function registerAccount(
+  baseUrl: string,
+  input: { name: string; email: string; phone: string; password: string; role: Role }
+) {
+  return apiFetch<{ message: string }>(baseUrl, "/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function verifyOtp(baseUrl: string, input: { email: string; code: string }) {
+  return apiFetch<{ message: string }>(baseUrl, "/api/auth/verify-otp", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function login(
+  baseUrl: string,
+  input: { email: string; password: string; role: Role }
+): Promise<{ message: string; user: AuthUser }> {
+  const data = await apiFetch<{ message: string; user: AuthUser; accessToken: string }>(
+    baseUrl,
+    "/api/auth/login",
+    { method: "POST", body: JSON.stringify(input) }
+  );
+  accessToken = data.accessToken;
+  return data;
+}
+
+export function forgotPassword(baseUrl: string, input: { email: string }) {
+  return apiFetch<{ message: string }>(baseUrl, "/api/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function resetPassword(
+  baseUrl: string,
+  input: { email: string; code: string; newPassword: string }
+) {
+  return apiFetch<{ message: string }>(baseUrl, "/api/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// The refresh token rotates on every use, so two concurrent callers presenting
+// the same cookie would race: the first rotates it, the second's rotation then
+// fails with a 401 because that token is already gone. This happens in practice
+// because React Strict Mode double-invokes effects in dev, and could also happen
+// from two components independently calling restoreSession() on the same load.
+// Sharing one in-flight promise means concurrent callers await the same actual
+// network call instead of each firing their own.
+let refreshInFlight: Promise<AuthUser | null> | null = null;
+
+// Call this once when the app loads: it trades the HttpOnly refresh cookie for a
+// fresh access token, restoring the session after a page reload. apiFetch also
+// calls it on its own whenever a request comes back 401 (expired token). Returns null
+// (rather than throwing) when there's no valid session, since that's the normal
+// "not logged in" case, not an error. `portal` must match the portal used at
+// login — each portal has its own separately-named refresh cookie.
+export function restoreSession(baseUrl: string, portal: Role): Promise<AuthUser | null> {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = apiFetch<{ accessToken: string; user: AuthUser }>(baseUrl, "/api/auth/refresh", {
+    method: "POST",
+    body: JSON.stringify({ portal }),
+  })
+    .then((data) => {
+      accessToken = data.accessToken;
+      return data.user;
+    })
+    .catch(() => {
+      accessToken = null;
+      return null;
+    })
+    .finally(() => {
+      refreshInFlight = null;
+    });
+
+  return refreshInFlight;
+}
+
+export async function logout(baseUrl: string, portal: Role): Promise<void> {
+  try {
+    await apiFetch(baseUrl, "/api/auth/logout", { method: "POST", body: JSON.stringify({ portal }) });
+  } finally {
+    accessToken = null;
+  }
+}
+
+// Confirms the current in-memory access token is still valid and returns who it
+// belongs to, scoped to the portal that token was issued for. Useful for protected
+// pages; restoreSession() is what to call on app load.
+export async function getMe(baseUrl: string): Promise<SessionUser> {
+  const data = await apiFetch<{ user: SessionUser }>(baseUrl, "/api/auth/me");
+  return data.user;
+}
+
+// Patient Portal only, below this point: the data-sharing consent gateway
+// (backend's domain/patientConsent.service.ts). The Patient Portal's first
+// real API surface beyond shared auth.
+
+// Looks up a real, currently-active hospital doctor by email — the same
+// generic 404 whether the email doesn't exist, isn't a hospital account, or
+// has no active hospital membership right now (never confirms which).
+export async function lookupDoctor(baseUrl: string, email: string): Promise<DoctorLookupResult> {
+  const data = await apiFetch<{ doctor: DoctorLookupResult }>(
+    baseUrl,
+    `/api/patient/doctors?email=${encodeURIComponent(email)}`
+  );
+  return data.doctor;
+}
+
+export function grantConsent(
+  baseUrl: string,
+  input: { doctorEmail: string; dataCategories: string[] }
+): Promise<{ message: string; grant: PatientConsent }> {
+  return apiFetch(baseUrl, "/api/patient/consents", { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function listMyConsents(baseUrl: string): Promise<PatientConsent[]> {
+  const data = await apiFetch<{ grants: PatientConsent[] }>(baseUrl, "/api/patient/consents");
+  return data.grants;
+}
+
+// Patient-only — the backend's PATCH /api/patient/consents/:id route only
+// ever accepts a Patient Portal session; a doctor's own token can't reach it
+// (requirePortal("patient") rejects it before any business logic runs).
+export function updateConsent(
+  baseUrl: string,
+  grantId: string,
+  dataCategories: string[]
+): Promise<{ message: string; grant: PatientConsent }> {
+  return apiFetch(baseUrl, `/api/patient/consents/${grantId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ dataCategories }),
+  });
+}
+
+export function revokeConsentAsPatient(baseUrl: string, grantId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/patient/consents/${grantId}/revoke`, { method: "POST" });
+}
+
+// Hospital Portal only, below this point.
+
+export async function listHospitalMemberships(baseUrl: string): Promise<HospitalMembership[]> {
+  const data = await apiFetch<{ memberships: HospitalMembership[] }>(baseUrl, "/api/hospital/memberships");
+  return data.memberships;
+}
+
+// Directory of every hospital, for someone deciding which one to request
+// access to — not scoped to the caller's own memberships.
+export async function listAllHospitals(baseUrl: string): Promise<Hospital[]> {
+  const data = await apiFetch<{ hospitals: Hospital[] }>(baseUrl, "/api/hospital/hospitals");
+  return data.hospitals;
+}
+
+// Switches the session's current hospital context. The backend re-verifies
+// membership server-side — this call can fail even if the hospitalId came from
+// a list this same session fetched moments ago (e.g. access was just revoked).
+export async function selectHospital(baseUrl: string, hospitalId: string): Promise<HospitalContext> {
+  const data = await apiFetch<{ accessToken: string; hospital: HospitalContext }>(
+    baseUrl,
+    "/api/hospital/select",
+    { method: "POST", body: JSON.stringify({ hospitalId }) }
+  );
+  accessToken = data.accessToken;
+  return data.hospital;
+}
+
+// Hospital Portal only, below this point: AccessRoles and staff access requests.
+// Both are admin-only for the "manage" half, gated server-side — the frontend
+// only chooses whether to show these sections, never enforces the restriction.
+
+export async function listAccessRoles(baseUrl: string): Promise<AccessRole[]> {
+  const data = await apiFetch<{ accessRoles: AccessRole[] }>(baseUrl, "/api/hospital/access-roles");
+  return data.accessRoles;
+}
+
+export function createAccessRole(
+  baseUrl: string,
+  input: { name: string; permissions: string[] }
+): Promise<{ accessRole: AccessRole }> {
+  return apiFetch(baseUrl, "/api/hospital/access-roles", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateAccessRole(
+  baseUrl: string,
+  roleId: string,
+  permissions: string[]
+): Promise<{ accessRole: AccessRole }> {
+  return apiFetch(baseUrl, `/api/hospital/access-roles/${roleId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ permissions }),
+  });
+}
+
+export function deleteAccessRole(baseUrl: string, roleId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/hospital/access-roles/${roleId}`, { method: "DELETE" });
+}
+
+export function requestHospitalAccess(baseUrl: string, hospitalId: string) {
+  return apiFetch<{ message: string; request: { id: string; status: string } }>(
+    baseUrl,
+    "/api/hospital/access-requests",
+    { method: "POST", body: JSON.stringify({ hospitalId }) }
+  );
+}
+
+export async function listMyAccessRequests(baseUrl: string): Promise<MyAccessRequest[]> {
+  const data = await apiFetch<{ requests: MyAccessRequest[] }>(baseUrl, "/api/hospital/access-requests/mine");
+  return data.requests;
+}
+
+export async function listPendingAccessRequests(baseUrl: string): Promise<AccessRequest[]> {
+  const data = await apiFetch<{ requests: AccessRequest[] }>(baseUrl, "/api/hospital/access-requests");
+  return data.requests;
+}
+
+export function approveAccessRequest(baseUrl: string, requestId: string, accessRoleId: string) {
+  return apiFetch(baseUrl, `/api/hospital/access-requests/${requestId}/approve`, {
+    method: "POST",
+    body: JSON.stringify({ accessRoleId }),
+  });
+}
+
+export function rejectAccessRequest(baseUrl: string, requestId: string) {
+  return apiFetch(baseUrl, `/api/hospital/access-requests/${requestId}/reject`, { method: "POST" });
+}
+
+// User-scoped, not hospital-scoped — lets a requester withdraw their own
+// pending request from anywhere, same as creating one.
+export function cancelAccessRequest(baseUrl: string, requestId: string) {
+  return apiFetch(baseUrl, `/api/hospital/access-requests/${requestId}/cancel`, { method: "POST" });
+}
+
+// Staff management: already-active members, distinct from the pending
+// requests above. Visible/usable by an admin or a staff member whose current
+// AccessRole includes staff.manage (see HospitalContext.canManageStaff).
+export async function listStaff(baseUrl: string): Promise<StaffMember[]> {
+  const data = await apiFetch<{ staff: StaffMember[] }>(baseUrl, "/api/hospital/staff");
+  return data.staff;
+}
+
+export function removeStaffMember(baseUrl: string, membershipId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/hospital/staff/${membershipId}`, { method: "DELETE" });
+}
+
+// A reversible, temporary suspension — distinct from removeStaffMember above.
+// Visible/usable by the same audience as removeStaffMember (admin or a
+// staff.manage holder, with the same peer-protection rule server-side).
+export function disableStaffMember(baseUrl: string, membershipId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/hospital/staff/${membershipId}/disable`, { method: "POST" });
+}
+
+export function enableStaffMember(baseUrl: string, membershipId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/hospital/staff/${membershipId}/enable`, { method: "POST" });
+}
+
+// Admin-only — reassigns which AccessRole a staff member currently holds.
+export function updateStaffRole(
+  baseUrl: string,
+  membershipId: string,
+  accessRoleId: string
+): Promise<{ message: string; accessRoleName: string }> {
+  return apiFetch(baseUrl, `/api/hospital/staff/${membershipId}/role`, {
+    method: "PATCH",
+    body: JSON.stringify({ accessRoleId }),
+  });
+}
+
+// Admin-only. Creates a User (emailing a temporary password) if the email
+// isn't registered yet, or grants an existing account hospital access —
+// either way ending in one active HospitalMembership.
+export function addStaff(
+  baseUrl: string,
+  input: { name: string; email: string; accessRoleId: string }
+): Promise<AddStaffResult> {
+  return apiFetch(baseUrl, "/api/hospital/staff", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// Self-service profile edit — any authenticated Hospital Portal session, no
+// permission gate (see backend's controllers/hospital.controller.ts::updateProfile).
+export function updateProfile(
+  baseUrl: string,
+  input: { specialization: string }
+): Promise<{ message: string; user: AuthUser }> {
+  return apiFetch(baseUrl, "/api/hospital/profile", { method: "PATCH", body: JSON.stringify(input) });
+}
+
+// Patients who've granted this doctor access — requires patient.view
+// (HospitalContext.canViewPatients), display/gating only; the backend
+// re-resolves the permission fresh regardless of what the frontend shows.
+export async function listGrantedPatients(baseUrl: string): Promise<GrantedPatientSummary[]> {
+  const data = await apiFetch<{ patients: GrantedPatientSummary[] }>(baseUrl, "/api/hospital/patient-consents");
+  return data.patients;
+}
+
+// A doctor giving up access they hold — never gated by patient.view (see
+// backend's routes/hospital.routes.ts note: revoking is never a privilege concern).
+export function revokeConsentAsDoctor(baseUrl: string, grantId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/hospital/patient-consents/${grantId}/revoke`, { method: "POST" });
+}
+
+// Owner Portal only, below this point.
+
+export async function listHospitals(baseUrl: string): Promise<Hospital[]> {
+  const data = await apiFetch<{ hospitals: Hospital[] }>(baseUrl, "/api/owner/hospitals");
+  return data.hospitals;
+}
+
+// The administrator's credentials are never returned here — they're emailed
+// directly, once, by the backend.
+export function createHospital(
+  baseUrl: string,
+  input: { hospitalName: string; adminName: string; adminEmail: string }
+): Promise<CreateHospitalResult> {
+  return apiFetch<CreateHospitalResult>(baseUrl, "/api/owner/hospitals", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// A reversible pause — every staff/admin membership and AccessRole tied to
+// the hospital is left completely untouched underneath; only access is cut
+// off. See backend's hospital.model.ts for the full rationale.
+export function disableHospital(baseUrl: string, hospitalId: string): Promise<{ message: string; hospital: Hospital }> {
+  return apiFetch(baseUrl, `/api/owner/hospitals/${hospitalId}/disable`, { method: "POST" });
+}
+
+export function enableHospital(baseUrl: string, hospitalId: string): Promise<{ message: string; hospital: Hospital }> {
+  return apiFetch(baseUrl, `/api/owner/hospitals/${hospitalId}/enable`, { method: "POST" });
+}
+
+// Permanent and cascading (deletes the hospital's staff/admin memberships and
+// AccessRoles along with it) — irreversible. The caller is responsible for a
+// real confirmation step before calling this; the backend does not ask twice.
+export function deleteHospital(baseUrl: string, hospitalId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/owner/hospitals/${hospitalId}`, { method: "DELETE" });
+}

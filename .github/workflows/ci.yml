@@ -19,20 +19,33 @@ jobs:
       fail-fast: false
       matrix:
         app: [patient-frontend, hospital-frontend, owner-frontend]
-    defaults:
-      run:
-        working-directory: ${{ matrix.app }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+      # One install for every workspace (apps, packages/, e2e) from the root lockfile.
       - run: npm ci
       - run: npx tsc --noEmit
+        working-directory: ${{ matrix.app }}
       - run: npx eslint
+        working-directory: ${{ matrix.app }}
       - run: npx vite build
+        working-directory: ${{ matrix.app }}
+
+  packages:
+    name: packages — lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Type errors in packages/ are caught by each app's tsc, which compiles them.
+      - run: npm run lint:packages
 
   e2e:
     name: End-to-end (Playwright, fake backend)
@@ -43,15 +56,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: |
-            patient-frontend/package-lock.json
-            hospital-frontend/package-lock.json
-            owner-frontend/package-lock.json
-            e2e/package-lock.json
-      - run: npm ci --prefix patient-frontend
-      - run: npm ci --prefix hospital-frontend
-      - run: npm ci --prefix owner-frontend
-      - run: npm ci --prefix e2e
+      - run: npm ci
       - run: npx playwright install --with-deps chromium
         working-directory: e2e
       # Starts the three dev servers itself (see playwright.config.ts); every

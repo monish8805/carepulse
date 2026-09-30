@@ -6,11 +6,11 @@ The palette has been swapped twice now (indigo → teal, then teal → the exact
 
 ## Current actual state
 
-Tailwind CSS v4 is installed in all three frontends (`tailwindcss`, `@tailwindcss/vite`, wired via `vite.config.ts` and `@import "tailwindcss";` in `src/styles.css`). Every page — auth pages, the portal shell, and every protected page's content — is styled with Tailwind utility classes plus the shared primitives in `components/ui/`. There is no other styling system: no CSS Modules, no plain per-page CSS files, no component library. `components/layout/layout.css` (the pre-Tailwind shell CSS) has been deleted; the shell is Tailwind classes now too.
+Tailwind CSS v4 is installed in all three frontends (`tailwindcss`, `@tailwindcss/vite`, wired via `vite.config.ts` and `@import "tailwindcss";` in `packages/ui/src/styles.css`, imported by each app's `src/styles.css`). Every page — auth pages, the portal shell, and every protected page's content — is styled with Tailwind utility classes plus the shared primitives in `@carepulse/ui`. There is no other styling system: no CSS Modules, no plain per-page CSS files, no component library. `components/layout/layout.css` (the pre-Tailwind shell CSS) has been deleted; the shell is Tailwind classes now too.
 
-## UI primitives — `components/ui/` (Live, duplicated per app)
+## UI primitives — `@carepulse/ui` (`packages/ui`, shared by every app)
 
-One small set of presentational components, written once and copied into all three frontends (not pulled into `shared/`, which stays scoped to types + the API client per CLAUDE.md). Import from the barrel: `import { Button, Card, ... } from "@/components/ui"`.
+One small set of presentational components, written once and used by all three frontends. Import from the package: `import { Button, Card, ... } from "@carepulse/ui"`. The `cp-*` tokens below live in its `styles.css`.
 
 | Component | Purpose |
 |---|---|
@@ -82,7 +82,7 @@ One small set of presentational components, written once and copied into all thr
 
 ## Account navigation vs. hospital navigation — Live (all three portals)
 
-Two distinct, deliberately separate navigation surfaces in the Header, so the Sidebar stays scoped to one thing. `AccountMenu.tsx` is now wired into all three frontends' Headers (copied per app, like every other layout component — not pulled into `shared/`); each `<Portal>Layout` builds its own `items` list.
+Two distinct, deliberately separate navigation surfaces in the Header, so the Sidebar stays scoped to one thing. `AccountMenu` (in `@carepulse/portal`, alongside `Header` and `Sidebar`) is wired into all three frontends' Headers; each `<Portal>Layout` builds its own `items` list.
 
 - **Sidebar — hospital/owner-application navigation only.** Routes for *doing the portal's actual work*: Hospital has Home and Access & Roles; Owner has Home and Hospitals; Patient has no sidebar yet (only one protected route today). Config-driven via `components/layout/nav.ts` per app. Never put a personal/account action here.
 - **Account menu (top-right of the Header, `AccountMenu.tsx`) — personal/account actions**, not application pages. Hospital Portal: `Profile`, `Request hospital access`, `Settings`, divider, `Log out`. Owner/Patient Portals: `Profile`, `Settings`, divider, `Log out` (no request-access item — not applicable to those portals). `Profile`/`Settings` render disabled everywhere with a "Coming soon" hint — no page exists yet for either, on any portal; don't wire them up until those pages are actually built. On Hospital, `Request hospital access` **navigates to `/access-request`** (a route navigation, not a modal) — a dedicated page rather than a header dropdown, since it has real content of its own (search, a hospital list, every past request with its status).

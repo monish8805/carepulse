@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { UserRound, Server, Building2 } from "lucide-react";
 import { healthQuery } from "@/lib/queries";
 import { useMe } from "@/lib/session";
-import { Alert, Badge, Card, Divider, LoadingState, PageContainer } from "@/components/ui";
+import { Alert, Badge, Card, Divider, LoadingState, PageContainer } from "@carepulse/ui";
 
 // "Good morning/afternoon/evening" — purely presentational, computed from the
 // viewer's local clock; no new data or backend call involved.
