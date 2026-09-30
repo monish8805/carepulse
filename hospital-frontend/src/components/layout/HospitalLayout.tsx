@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { Activity, UserRound, Settings } from "lucide-react";
@@ -10,8 +10,11 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import type { AccountMenuItem } from "./AccountMenu";
 import { HOSPITAL_NAV_SECTIONS } from "./nav";
-import HospitalAccessGate from "@/components/access/HospitalAccessGate";
 import { Alert, Button, Card, LoadingState } from "@/components/ui";
+
+// Only a session without an active membership ever sees the gate, so staff
+// who are already in never download it.
+const HospitalAccessGate = lazy(() => import("@/components/access/HospitalAccessGate"));
 
 // Statuses that mean the account currently occupies its one hospital "slot"
 // — mirrors the backend's own live/non-live split (models/hospitalMembership.model.ts,
@@ -168,12 +171,14 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
           onToggleMobileMenu={() => {}}
         />
         <div className="min-w-0 flex-1 overflow-y-auto bg-cp-workspace dark:bg-cp-workspace-dark">
-          <HospitalAccessGate
-            status={phase.status}
-            myRequests={phase.myRequests}
-            onChanged={handleChanged}
-            refreshing={refreshing}
-          />
+          <Suspense fallback={<LoadingState />}>
+            <HospitalAccessGate
+              status={phase.status}
+              myRequests={phase.myRequests}
+              onChanged={handleChanged}
+              refreshing={refreshing}
+            />
+          </Suspense>
         </div>
       </div>
     );

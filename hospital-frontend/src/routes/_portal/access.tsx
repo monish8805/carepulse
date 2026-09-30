@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Users, ShieldCheck, ChevronDown } from "lucide-react";
@@ -35,8 +35,14 @@ import {
   SkeletonList,
   useToast,
 } from "@/components/ui";
-import AddStaffModal from "@/components/access/AddStaffModal";
-import ManageRolesPanel from "@/components/access/ManageRolesPanel";
+
+// Only admins ever open these, and only on demand — so they're separate
+// chunks, fetched when the button that opens them is hovered/focused (the same
+// intent-preload idea the router uses for links) or, at the latest, on click.
+const loadAddStaffModal = () => import("@/components/access/AddStaffModal");
+const loadManageRolesPanel = () => import("@/components/access/ManageRolesPanel");
+const AddStaffModal = lazy(loadAddStaffModal);
+const ManageRolesPanel = lazy(loadManageRolesPanel);
 
 // Hospital administration: Staff is the primary, permanent content here.
 // Adding/reviewing staff lives behind a Modal (AddStaffModal); Roles &
@@ -45,6 +51,11 @@ import ManageRolesPanel from "@/components/access/ManageRolesPanel";
 // vs. hospital-nav split for why "Request hospital access" isn't here at all
 // anymore (it's its own page, reachable from the account menu).
 export const Route = createFileRoute("/_portal/access")({
+  // The staff search lives in the URL (?q=), so it survives a reload,
+  // back/forward, and can be shared as a link.
+  validateSearch: (search: Record<string, unknown>): { q?: string } => ({
+    q: typeof search.q === "string" && search.q ? search.q : undefined,
+  }),
   loader: ({ context: { queryClient } }) => {
     const hospital = cachedHospitalContext(queryClient);
     if (hospital?.role === "admin") {
@@ -66,7 +77,8 @@ function AccessPage() {
   const pendingQuery = useQuery({ ...pendingRequestsQuery, enabled: isAdmin });
   const staffQuery = useQuery({ ...staffQueryOptions, enabled: canManageStaff });
 
-  const [staffSearch, setStaffSearch] = useState("");
+  const staffSearch = Route.useSearch().q ?? "";
+  const navigate = Route.useNavigate();
   const [staffToRemove, setStaffToRemove] = useState<StaffMember | null>(null);
   const [addStaffOpen, setAddStaffOpen] = useState(false);
   const [rolesExpanded, setRolesExpanded] = useState(false);
@@ -248,7 +260,11 @@ function AccessPage() {
                   </div>
                 </div>
                 {isAdmin && (
-                  <Button onClick={() => setAddStaffOpen(true)}>
+                  <Button
+                    onClick={() => setAddStaffOpen(true)}
+                    onMouseEnter={loadAddStaffModal}
+                    onFocus={loadAddStaffModal}
+                  >
                     Add staff{pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ""}
                   </Button>
                 )}
@@ -260,7 +276,10 @@ function AccessPage() {
                   id="staff-search"
                   placeholder="Search by name or email..."
                   value={staffSearch}
-                  onChange={(e) => setStaffSearch(e.target.value)}
+                  onChange={(e) =>
+                    // replace, not push: typing shouldn't add a history entry per keystroke.
+                    navigate({ search: { q: e.target.value || undefined }, replace: true })
+                  }
                   autoComplete="off"
                 />
               </div>
@@ -394,6 +413,8 @@ function AccessPage() {
                   variant="secondary"
                   aria-expanded={rolesExpanded}
                   onClick={() => setRolesExpanded((prev) => !prev)}
+                  onMouseEnter={loadManageRolesPanel}
+                  onFocus={loadManageRolesPanel}
                 >
                   Manage roles
                   <ChevronDown
@@ -403,21 +424,29 @@ function AccessPage() {
                 </Button>
               </div>
 
-              {rolesExpanded && <ManageRolesPanel accessRoles={accessRoles} onChanged={refetchRoles} />}
+              {rolesExpanded && (
+                <Suspense fallback={<SkeletonList rows={2} />}>
+                  <ManageRolesPanel accessRoles={accessRoles} onChanged={refetchRoles} />
+                </Suspense>
+              )}
             </Card>
           )}
         </div>
       )}
 
       {isAdmin && addStaffOpen && (
-        <AddStaffModal
-          onClose={() => setAddStaffOpen(false)}
-          accessRoles={accessRoles}
-          pendingRequests={pendingRequests}
-          onStaffAdded={refetchStaffOnly}
-          onApproved={refetchPendingAndStaff}
-          onRejected={refetchPending}
-        />
+        // No visible fallback: the chunk was almost always prefetched on hover,
+        // and a modal flashing a placeholder would look worse than a brief wait.
+        <Suspense fallback={null}>
+          <AddStaffModal
+            onClose={() => setAddStaffOpen(false)}
+            accessRoles={accessRoles}
+            pendingRequests={pendingRequests}
+            onStaffAdded={refetchStaffOnly}
+            onApproved={refetchPendingAndStaff}
+            onRejected={refetchPending}
+          />
+        </Suspense>
       )}
 
       <Modal open={!!staffToRemove} onClose={() => setStaffToRemove(null)} title="Remove staff member">
