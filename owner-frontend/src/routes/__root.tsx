@@ -3,13 +3,9 @@ import type { QueryClient } from "@tanstack/react-query";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
-import "@fontsource-variable/dm-sans";
-// Weight must be listed explicitly — Space Mono only ships 400/700, it has no
-// variable-weight axis.
-import "@fontsource/space-mono/400.css";
-import "@fontsource/space-mono/700.css";
+import "@carepulse/ui/fonts";
 import appCss from "../styles.css?url";
-import { ToastProvider } from "@/components/ui";
+import { ToastProvider } from "@carepulse/ui";
 
 // Applies the right theme class before first paint, so there's no flash of
 // the wrong theme while React renders. Reads a stored override (ThemeToggle

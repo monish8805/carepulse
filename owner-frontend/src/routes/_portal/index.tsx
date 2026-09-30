@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { UserRound, Server, Building2 } from "lucide-react";
 import { healthQuery } from "@/lib/queries";
-import { useSession } from "@/lib/session";
-import { Card, Divider, LoadingState, PageContainer } from "@/components/ui";
+import { useSession } from "@carepulse/portal";
+import { Card, Divider, LoadingState, PageContainer } from "@carepulse/ui";
 
 // "Good morning/afternoon/evening" — purely presentational, computed from the
 // viewer's local clock; no new data or backend call involved.

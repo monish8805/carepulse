@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Users } from "lucide-react";
-import type { GrantedPatientSummary } from "@shared/types";
+import type { GrantedPatientSummary } from "@carepulse/api/types";
 import { revokeConsentAsDoctor } from "@/lib/api";
 import { useMe } from "@/lib/session";
-import { cachedHospitalContext, grantedPatientsQuery, prefetch } from "@/lib/queries";
+import { cachedHospitalContext, grantedPatientsQuery } from "@/lib/queries";
+import { prefetch } from "@carepulse/portal";
 import {
   Alert,
   Avatar,
@@ -19,7 +20,7 @@ import {
   PageHeader,
   SkeletonList,
   useToast,
-} from "@/components/ui";
+} from "@carepulse/ui";
 
 // "vitals.continuous" -> "Vitals — Continuous", matching the category
 // catalogue in backend/config/dataCategories.ts to a readable label — same

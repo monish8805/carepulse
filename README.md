@@ -8,7 +8,7 @@ A healthcare app built as a modular monolith, with a shared backend and three se
 - `patient-frontend/` — TanStack Start app for patients (register, login, forgot password). Port `3001`.
 - `hospital-frontend/` — TanStack Start app for hospital staff (register, login, forgot password). Port `3002`.
 - `owner-frontend/` — TanStack Start app for the platform owner (login only — no public registration). Port `3003`.
-- `shared/` — Types and a small API client shared by all three frontends.
+- `packages/` — code shared by all three frontends (npm workspaces): `api` (types + API client), `ui` (UI primitives + design tokens), `portal` (header/sidebar, session, cross-tab sync, router defaults).
 
 ## Running locally
 
@@ -45,9 +45,10 @@ This creates one owner account (email/password are set in `backend/scripts/seedO
 Each portal is its own app. In three terminals:
 
 ```
-cd patient-frontend  && npm install && npm run dev   # http://localhost:3001
-cd hospital-frontend && npm install && npm run dev   # http://localhost:3002
-cd owner-frontend    && npm install && npm run dev   # http://localhost:3003
+npm install                              # once, at the repo root — installs every app and package
+cd patient-frontend  && npm run dev      # http://localhost:3001
+cd hospital-frontend && npm run dev      # http://localhost:3002
+cd owner-frontend    && npm run dev      # http://localhost:3003
 ```
 
 Copy `.env.local.example` to `.env.local` in each if the API isn't on `http://localhost:5001`.
@@ -57,7 +58,7 @@ In development, the round TanStack button in the bottom-right corner opens the R
 
 ```
 cd backend && npm test        # API tests — use the real Atlas dev database and Brevo
-cd e2e && npm install && npx playwright install chromium
+cd e2e && npx playwright install chromium   # after the root npm install
 npm test                      # browser tests for all three portals, backend faked — no setup needed
 ```
 

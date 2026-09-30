@@ -2,7 +2,7 @@ import { lazy, Suspense, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Users, ShieldCheck, ChevronDown } from "lucide-react";
-import type { StaffMember } from "@shared/types";
+import type { StaffMember } from "@carepulse/api/types";
 import {
   removeStaffMember,
   disableStaffMember,
@@ -14,9 +14,9 @@ import {
   accessRolesQuery,
   cachedHospitalContext,
   pendingRequestsQuery,
-  prefetch,
   staffQuery as staffQueryOptions,
 } from "@/lib/queries";
+import { prefetch } from "@carepulse/portal";
 import {
   Alert,
   Avatar,
@@ -34,7 +34,7 @@ import {
   Select,
   SkeletonList,
   useToast,
-} from "@/components/ui";
+} from "@carepulse/ui";
 
 // Only admins ever open these, and only on demand — so they're separate
 // chunks, fetched when the button that opens them is hovered/focused (the same

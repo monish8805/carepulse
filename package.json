@@ -1,0 +1,22 @@
+{
+  "name": "carepulse",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "patient-frontend",
+    "hospital-frontend",
+    "owner-frontend",
+    "packages/*",
+    "e2e"
+  ],
+  "scripts": {
+    "lint:packages": "eslint packages",
+    "test:e2e": "npm test --workspace e2e"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "eslint": "^9",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript-eslint": "^8.71.0"
+  }
+}

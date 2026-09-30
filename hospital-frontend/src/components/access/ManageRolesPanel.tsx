@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { PERMISSIONS } from "@shared/types";
-import type { AccessRole } from "@shared/types";
+import { PERMISSIONS } from "@carepulse/api/types";
+import type { AccessRole } from "@carepulse/api/types";
 import { createAccessRole, updateAccessRole, deleteAccessRole } from "@/lib/api";
-import { Alert, Badge, Button, Checkbox, Divider, EmptyState, Input, Label } from "@/components/ui";
+import { Alert, Badge, Button, Checkbox, Divider, EmptyState, Input, Label } from "@carepulse/ui";
 
 // "patient.view" -> "Patient — View", matching the permission catalogue in
 // backend/config/permissions.ts (area.action strings) to a readable label.

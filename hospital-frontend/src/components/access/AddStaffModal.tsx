@@ -1,7 +1,7 @@
 import { useState } from "react";
-import type { AccessRole, AccessRequest } from "@shared/types";
+import type { AccessRole, AccessRequest } from "@carepulse/api/types";
 import { addStaff, approveAccessRequest, rejectAccessRequest } from "@/lib/api";
-import { Alert, Avatar, Button, Divider, Label, Modal, Select, TextField } from "@/components/ui";
+import { Alert, Avatar, Button, Divider, Label, Modal, Select, TextField } from "@carepulse/ui";
 
 interface AddStaffModalProps {
   onClose: () => void;

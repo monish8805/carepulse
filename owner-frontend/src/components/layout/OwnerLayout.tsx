@@ -4,12 +4,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { UserRound, Settings } from "lucide-react";
 import { logout } from "@/lib/api";
 import { healthQuery } from "@/lib/queries";
-import { useSession } from "@/lib/session";
-import { broadcastAuth, useAuthSync } from "@/lib/authSync";
-import Header from "./Header";
-import Sidebar from "./Sidebar";
-import type { AccountMenuItem } from "./AccountMenu";
-import { LoadingState } from "@/components/ui";
+import { useSession, broadcastAuth, useAuthSync, Header, Sidebar } from "@carepulse/portal";
+import type { AccountMenuItem } from "@carepulse/portal";
+import { LoadingState } from "@carepulse/ui";
 import { OWNER_NAV_SECTIONS } from "./nav";
 
 // Account/personal actions — not hospital/owner-application navigation, so

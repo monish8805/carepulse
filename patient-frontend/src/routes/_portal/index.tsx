@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Wifi, HeartPulse } from "lucide-react";
 import { healthQuery } from "@/lib/queries";
-import { useSession } from "@/lib/session";
-import { Avatar, Card, LoadingState } from "@/components/ui";
+import { useSession } from "@carepulse/portal";
+import { Avatar, Card, LoadingState } from "@carepulse/ui";
 
 export const Route = createFileRoute("/_portal/")({
   loader: ({ context }) => {

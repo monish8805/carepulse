@@ -3,8 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Activity } from "lucide-react";
 import { login } from "@/lib/api";
-import { broadcastAuth } from "@/lib/authSync";
-import { Alert, Button, Card, TextField, ThemeToggle } from "@/components/ui";
+import { broadcastAuth } from "@carepulse/portal";
+import { Alert, Button, Card, TextField, ThemeToggle } from "@carepulse/ui";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
