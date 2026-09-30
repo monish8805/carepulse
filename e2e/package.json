@@ -1,0 +1,14 @@
+{
+  "name": "carepulse-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^20.19.43",
+    "typescript": "^5.9.3"
+  }
+}

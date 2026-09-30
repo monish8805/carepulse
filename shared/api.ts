@@ -63,14 +63,18 @@ async function send(baseUrl: string, path: string, options: RequestInit): Promis
 }
 
 async function apiFetch<T>(baseUrl: string, path: string, options: RequestInit = {}): Promise<T> {
+  const sentWith = accessToken;
   let response = await send(baseUrl, path, options);
 
   // The access token lives 15 minutes. When it has expired, trade the refresh
-  // cookie for a new one (through restoreSession's shared in-flight promise, so
-  // a burst of 401s still causes exactly one refresh) and retry once.
+  // cookie for a new one (through restoreSession's shared in-flight promise)
+  // and retry once. If another request already renewed the token while this
+  // one was in flight, just retry with that — a burst of 401s whose answers
+  // straggle in after the refresh finished must not each refresh again.
   if (response.status === 401 && refreshTarget && !NO_REFRESH_PATHS.includes(path)) {
-    const user = await restoreSession(refreshTarget.baseUrl, refreshTarget.portal);
-    if (user) response = await send(baseUrl, path, options);
+    const renewedMeanwhile = accessToken !== null && accessToken !== sentWith;
+    const renewed = renewedMeanwhile || (await restoreSession(refreshTarget.baseUrl, refreshTarget.portal)) !== null;
+    if (renewed) response = await send(baseUrl, path, options);
     else sessionLostListener?.();
   }
 
