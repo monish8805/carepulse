@@ -5,7 +5,7 @@ import { UserRound } from "lucide-react";
 import type { SessionUser } from "@shared/types";
 import { updateProfile } from "@/lib/api";
 import { useMe } from "@/lib/session";
-import { Alert, Button, Card, LoadingState, PageContainer, PageHeader, TextField } from "@/components/ui";
+import { Alert, Button, Card, LoadingState, PageContainer, PageHeader, TextField, useToast } from "@/components/ui";
 
 // A single self-service field for now: specialization (e.g. "Gynaecologist",
 // "Neurologist", "RMP") — free text, never a fixed clinical-title enum (see
@@ -21,28 +21,24 @@ function ProfilePage() {
   const { isPending, user, error: meError } = useMe();
   // null = untouched, so the field shows the saved value until the user types.
   const [draft, setDraft] = useState<string | null>(null);
-  const [message, setMessage] = useState("");
+  const toast = useToast();
   const [error, setError] = useState("");
   const specialization = draft ?? user?.specialization ?? "";
 
   const saveMutation = useMutation({
     mutationFn: updateProfile,
     onSuccess: (result) => {
-      setMessage("Profile updated.");
+      toast.success("Profile updated.");
       queryClient.setQueryData<SessionUser>(["me"], (prev) =>
         prev ? { ...prev, specialization: result.user.specialization } : prev
       );
     },
-    onError: (err) => {
-      setMessage("");
-      setError(err.message || "Something went wrong.");
-    },
+    onError: (err) => setError(err.message || "Something went wrong."),
   });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    setMessage("");
     saveMutation.mutate({ specialization });
   }
 
@@ -76,10 +72,11 @@ function ProfilePage() {
     <PageContainer>
       <PageHeader title="Profile" description="How patients see you when they look you up to share their data." />
 
-      <div className="mb-6 space-y-3">
-        {message && <Alert variant="success">{message}</Alert>}
-        {error && <Alert variant="error">{error}</Alert>}
-      </div>
+      {error && (
+        <div className="mb-6">
+          <Alert variant="error">{error}</Alert>
+        </div>
+      )}
 
       <Card title={user.name} description={user.email} icon={UserRound}>
         <form onSubmit={handleSubmit} className="space-y-4">

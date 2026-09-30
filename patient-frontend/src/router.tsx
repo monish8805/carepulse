@@ -2,6 +2,8 @@ import { createRouter } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { onSessionLost } from "@shared/api";
 import { routeTree } from "./routeTree.gen";
+import RouteError from "./components/layout/RouteError";
+import { LoadingState } from "./components/ui";
 
 export function getRouter() {
   const queryClient = new QueryClient({
@@ -33,6 +35,8 @@ export function getRouter() {
     // Freshness is Query's job (staleTime above) — the router re-runs a loader
     // every time, and the loader's prefetch is a no-op while the data is fresh.
     defaultPreloadStaleTime: 0,
+    defaultErrorComponent: RouteError,
+    defaultPendingComponent: () => <LoadingState />,
     Wrap: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>,
   });
 }

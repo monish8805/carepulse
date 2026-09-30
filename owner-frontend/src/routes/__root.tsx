@@ -9,6 +9,7 @@ import "@fontsource-variable/dm-sans";
 import "@fontsource/space-mono/400.css";
 import "@fontsource/space-mono/700.css";
 import appCss from "../styles.css?url";
+import { ToastProvider } from "@/components/ui";
 
 // Applies the right theme class before first paint, so there's no flash of
 // the wrong theme while React renders. Reads a stored override (ThemeToggle
@@ -61,7 +62,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="min-h-screen bg-cp-page font-sans text-cp-text antialiased dark:bg-cp-page-dark dark:text-cp-text-dark">
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_THEME_SCRIPT }} />
-        {children}
+        <ToastProvider>{children}</ToastProvider>
         <TanStackDevtools
           config={{ position: "bottom-right" }}
           plugins={[

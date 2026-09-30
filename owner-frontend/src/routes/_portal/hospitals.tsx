@@ -14,9 +14,11 @@ import {
   EmptyState,
   LoadingState,
   Modal,
+  SkeletonList,
   PageContainer,
   PageHeader,
   TextField,
+  useToast,
 } from "@/components/ui";
 
 export const Route = createFileRoute("/_portal/hospitals")({
@@ -29,80 +31,78 @@ function HospitalsPage() {
   const session = useSession();
   const hospitalsQuery = useQuery({ ...hospitalsQueryOptions, enabled: !!session.data });
 
+  const toast = useToast();
+
   const [hospitalName, setHospitalName] = useState("");
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [createError, setCreateError] = useState("");
   const [hospitalToDelete, setHospitalToDelete] = useState<Hospital | null>(null);
 
-  function showError(err: unknown) {
-    setMessage("");
-    setError(err instanceof Error ? err.message : "Something went wrong.");
+  const hospitalsKey = hospitalsQueryOptions.queryKey;
+
+  // Applies a change to the cached list immediately, returning the previous
+  // list so a failed request can put it back (see rollback below).
+  async function updateListOptimistically(change: (list: Hospital[]) => Hospital[]) {
+    await queryClient.cancelQueries({ queryKey: hospitalsKey });
+    const previous = queryClient.getQueryData(hospitalsKey);
+    queryClient.setQueryData(hospitalsKey, (list) => change(list ?? []));
+    return { previous };
+  }
+
+  function rollback(err: Error, context: { previous?: Hospital[] } | undefined) {
+    queryClient.setQueryData(hospitalsKey, context?.previous);
+    toast.error(err.message || "Something went wrong.");
   }
 
   function refreshHospitals() {
-    return queryClient.invalidateQueries({ queryKey: ["hospitals"] });
+    return queryClient.invalidateQueries({ queryKey: hospitalsKey });
   }
 
   const createMutation = useMutation({
     mutationFn: createHospital,
     onSuccess: (result) => {
-      setMessage(`Created "${result.hospital.name}". Login credentials were emailed to ${result.admin.email}.`);
+      toast.success(`Created "${result.hospital.name}". Login credentials were emailed to ${result.admin.email}.`);
       setHospitalName("");
       setAdminName("");
       setAdminEmail("");
       return refreshHospitals();
     },
-    onError: showError,
+    onError: (err) => setCreateError(err.message || "Could not create hospital."),
   });
 
   // Toggles between disable/enable depending on the hospital's current state
-  // — a reversible pause, distinct from Delete below.
+  // — a reversible pause, distinct from Delete below. The row flips instantly;
+  // the server's answer then confirms or reverts it.
   const toggleMutation = useMutation({
     mutationFn: (hospital: Hospital) => (hospital.isActive ? disableHospital(hospital.id) : enableHospital(hospital.id)),
-    onSuccess: (_, hospital) => {
-      setMessage(`${hospital.isActive ? "Disabled" : "Enabled"} "${hospital.name}".`);
-      return refreshHospitals();
-    },
-    onError: showError,
+    onMutate: (hospital) =>
+      updateListOptimistically((list) =>
+        list.map((h) => (h.id === hospital.id ? { ...h, isActive: !hospital.isActive } : h))
+      ),
+    onSuccess: (_, hospital) => toast.success(`${hospital.isActive ? "Disabled" : "Enabled"} "${hospital.name}".`),
+    onError: (err, _, context) => rollback(err, context),
+    onSettled: refreshHospitals,
   });
 
   const deleteMutation = useMutation({
     mutationFn: (hospital: Hospital) => deleteHospital(hospital.id),
-    onSuccess: (_, hospital) => {
-      setMessage(`Deleted "${hospital.name}".`);
-      setHospitalToDelete(null);
-      return refreshHospitals();
-    },
-    onError: showError,
+    onMutate: (hospital) => updateListOptimistically((list) => list.filter((h) => h.id !== hospital.id)),
+    onSuccess: (_, hospital) => toast.success(`Deleted "${hospital.name}".`),
+    onError: (err, _, context) => rollback(err, context),
+    onSettled: refreshHospitals,
   });
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
-    setMessage("");
+    setCreateError("");
     createMutation.mutate({ hospitalName, adminName, adminEmail });
-  }
-
-  function handleToggleActive(hospital: Hospital) {
-    setError("");
-    setMessage("");
-    toggleMutation.mutate(hospital);
-  }
-
-  // Clears any stale error before opening a confirmation, so a message from
-  // an earlier, unrelated action can't linger and read as if it applies here.
-  function openDeleteConfirm(hospital: Hospital) {
-    setError("");
-    setMessage("");
-    setHospitalToDelete(hospital);
   }
 
   function handleConfirmDelete() {
     if (!hospitalToDelete) return;
-    setError("");
     deleteMutation.mutate(hospitalToDelete);
+    setHospitalToDelete(null);
   }
 
   if (session.isPending) {
@@ -127,6 +127,7 @@ function HospitalsPage() {
   }
 
   const hospitals = hospitalsQuery.data ?? [];
+  // Guards against a second click racing the first while its request is out.
   const togglingId = toggleMutation.isPending ? toggleMutation.variables.id : null;
 
   return (
@@ -134,8 +135,6 @@ function HospitalsPage() {
       <PageHeader title="Hospitals" description="Manage hospitals and administrators." />
 
       <div className="mb-6 space-y-3">
-        {message && <Alert variant="success">{message}</Alert>}
-        {error && <Alert variant="error">{error}</Alert>}
         {hospitalsQuery.isError && (
           // A logged-in session exists but loading hospitals failed — show that
           // clearly rather than silently leaving the list empty with no explanation.
@@ -166,6 +165,8 @@ function HospitalsPage() {
               required
             />
 
+            {createError && <Alert variant="error">{createError}</Alert>}
+
             <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending ? "Creating..." : "Create hospital"}
             </Button>
@@ -174,7 +175,7 @@ function HospitalsPage() {
 
         <Card title="Existing hospitals" icon={Building2}>
           {hospitalsQuery.isPending ? (
-            <LoadingState />
+            <SkeletonList />
           ) : hospitals.length === 0 ? (
             <EmptyState title="No hospitals yet" />
           ) : (
@@ -192,11 +193,11 @@ function HospitalsPage() {
                     <Button
                       variant="secondary"
                       disabled={togglingId === h.id}
-                      onClick={() => handleToggleActive(h)}
+                      onClick={() => toggleMutation.mutate(h)}
                     >
-                      {togglingId === h.id ? "..." : h.isActive ? "Disable" : "Enable"}
+                      {h.isActive ? "Disable" : "Enable"}
                     </Button>
-                    <Button variant="destructive-subtle" onClick={() => openDeleteConfirm(h)}>
+                    <Button variant="destructive-subtle" onClick={() => setHospitalToDelete(h)}>
                       Delete
                     </Button>
                   </div>
@@ -214,13 +215,12 @@ function HospitalsPage() {
             This permanently deletes the hospital along with every staff and admin membership and every access role
             tied to it. Their accounts stay — they just lose access to this hospital. This cannot be undone.
           </p>
-          {error && <Alert variant="error">{error}</Alert>}
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setHospitalToDelete(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" disabled={deleteMutation.isPending} onClick={handleConfirmDelete}>
-              {deleteMutation.isPending ? "Deleting..." : "Delete hospital"}
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              Delete hospital
             </Button>
           </div>
         </div>

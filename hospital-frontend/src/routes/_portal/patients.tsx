@@ -17,6 +17,8 @@ import {
   Modal,
   PageContainer,
   PageHeader,
+  SkeletonList,
+  useToast,
 } from "@/components/ui";
 
 // "vitals.continuous" -> "Vitals — Continuous", matching the category
@@ -56,31 +58,32 @@ function PatientsPage() {
   // grant again — so it gets the same confirmation step as every other
   // irreversible action in the app.
   const [patientToRevoke, setPatientToRevoke] = useState<GrantedPatientSummary | null>(null);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const toast = useToast();
 
+  // The row disappears instantly; the server's answer confirms or restores it.
   const revokeMutation = useMutation({
     mutationFn: (patient: GrantedPatientSummary) => revokeConsentAsDoctor(patient.id),
-    onSuccess: (_, patient) => {
-      setMessage(`Gave up access to ${patient.patientName}'s data.`);
-      setPatientToRevoke(null);
-      return queryClient.invalidateQueries({ queryKey: ["grantedPatients"] });
+    onMutate: async (patient) => {
+      await queryClient.cancelQueries({ queryKey: grantedPatientsQuery.queryKey });
+      const previous = queryClient.getQueryData(grantedPatientsQuery.queryKey);
+      queryClient.setQueryData(grantedPatientsQuery.queryKey, (list) => (list ?? []).filter((p) => p.id !== patient.id));
+      return { previous };
     },
-    onError: (err) => {
-      setMessage("");
-      setError(err.message || "Something went wrong.");
+    onSuccess: (_, patient) => toast.success(`Gave up access to ${patient.patientName}'s data.`),
+    onError: (err, _, context) => {
+      queryClient.setQueryData(grantedPatientsQuery.queryKey, context?.previous);
+      toast.error(err.message || "Could not give up access.");
     },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: grantedPatientsQuery.queryKey }),
   });
 
   function handleRevoke() {
     if (!patientToRevoke) return;
-    setError("");
-    setMessage("");
     revokeMutation.mutate(patientToRevoke);
+    setPatientToRevoke(null);
   }
 
   const patients = patientsQuery.data ?? [];
-  const revokingId = revokeMutation.isPending ? revokeMutation.variables.id : null;
   const loadError = meError?.message || (patientsQuery.isError ? patientsQuery.error.message : "");
 
   if (isPending) {
@@ -114,8 +117,6 @@ function PatientsPage() {
       <PageHeader title="Patients" description="Patients who have granted you access to their data." />
 
       <div className="mb-6 space-y-3">
-        {message && <Alert variant="success">{message}</Alert>}
-        {error && <Alert variant="error">{error}</Alert>}
         {loadError && <Alert variant="error">{loadError}</Alert>}
       </div>
 
@@ -131,7 +132,7 @@ function PatientsPage() {
           icon={Users}
         >
           {patientsQuery.isPending ? (
-            <LoadingState />
+            <SkeletonList />
           ) : patients.length === 0 ? (
             <EmptyState title="No patients have shared access with you yet" />
           ) : (
@@ -150,16 +151,8 @@ function PatientsPage() {
                         </p>
                       </div>
                     </div>
-                    <Button
-                      variant="destructive-subtle"
-                      disabled={revokingId === patient.id}
-                      onClick={() => {
-                        setError("");
-                        setMessage("");
-                        setPatientToRevoke(patient);
-                      }}
-                    >
-                      {revokingId === patient.id ? "Revoking..." : "Give up access"}
+                    <Button variant="destructive-subtle" onClick={() => setPatientToRevoke(patient)}>
+                      Give up access
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pl-10">
@@ -186,13 +179,12 @@ function PatientsPage() {
             You&apos;ll immediately lose access to {patientToRevoke?.patientName}&apos;s data. You can&apos;t undo
             this yourself — only {patientToRevoke?.patientName} can grant access again.
           </p>
-          {error && <Alert variant="error">{error}</Alert>}
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setPatientToRevoke(null)}>
               Keep access
             </Button>
-            <Button variant="destructive" disabled={revokingId === patientToRevoke?.id} onClick={handleRevoke}>
-              {revokingId === patientToRevoke?.id ? "Revoking..." : "Give up access"}
+            <Button variant="destructive" onClick={handleRevoke}>
+              Give up access
             </Button>
           </div>
         </div>
