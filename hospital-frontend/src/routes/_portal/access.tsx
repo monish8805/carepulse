@@ -32,6 +32,8 @@ import {
   PageContainer,
   PageHeader,
   Select,
+  SkeletonList,
+  useToast,
 } from "@/components/ui";
 import AddStaffModal from "@/components/access/AddStaffModal";
 import ManageRolesPanel from "@/components/access/ManageRolesPanel";
@@ -72,13 +74,10 @@ function AccessPage() {
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [editRoleValue, setEditRoleValue] = useState("");
 
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-
-  function showError(err: unknown) {
-    setMessage("");
-    setError(err instanceof Error ? err.message : "Something went wrong.");
-  }
+  const toast = useToast();
+  // Remove is confirmed in a modal, so its failure is shown there; the other
+  // row actions report through toasts.
+  const [removeError, setRemoveError] = useState("");
 
   // Handed to child components (AddStaffModal, ManageRolesPanel) as their
   // "something changed" callbacks. A failed refetch surfaces through the
@@ -100,56 +99,70 @@ function AccessPage() {
     refetchStaffOnly();
   }
 
+  // Not optimistic: removal can't be undone, so the modal waits for the
+  // server's answer and shows a failure in place.
   const removeMutation = useMutation({
     mutationFn: (member: StaffMember) => removeStaffMember(member.id),
     onSuccess: (_, member) => {
-      setMessage(`Removed ${member.userName}.`);
+      toast.success(`Removed ${member.userName}.`);
       setStaffToRemove(null);
       refetchStaffOnly();
     },
-    onError: showError,
+    onError: (err) => setRemoveError(err.message || "Could not remove staff member."),
   });
 
+  // Not optimistic: which role (and so which permissions) someone holds is
+  // the server's decision to confirm, not something to show before it has.
   const roleMutation = useMutation({
     mutationFn: (input: { member: StaffMember; accessRoleId: string }) =>
       updateStaffRole(input.member.id, input.accessRoleId),
     onSuccess: (_, { member }) => {
-      setMessage(`Updated ${member.userName}'s role.`);
+      toast.success(`Updated ${member.userName}'s role.`);
       setEditingRoleId(null);
       refetchStaffOnly();
     },
-    onError: showError,
+    onError: (err) => toast.error(err.message || "Could not update role."),
   });
 
   // Toggles between disable/enable depending on the member's current status —
-  // a reversible suspension, distinct from Remove below.
+  // a reversible suspension, distinct from Remove below. The row flips
+  // instantly; the server's answer confirms or reverts it.
   const toggleMutation = useMutation({
     mutationFn: (member: StaffMember) =>
       member.status === "active" ? disableStaffMember(member.id) : enableStaffMember(member.id),
-    onSuccess: (_, member) => {
-      setMessage(`${member.status === "active" ? "Disabled" : "Enabled"} ${member.userName}.`);
-      refetchStaffOnly();
+    onMutate: async (member) => {
+      await queryClient.cancelQueries({ queryKey: staffQueryOptions.queryKey });
+      const previous = queryClient.getQueryData(staffQueryOptions.queryKey);
+      queryClient.setQueryData(staffQueryOptions.queryKey, (list) =>
+        (list ?? []).map((s) =>
+          s.id === member.id ? { ...s, status: member.status === "active" ? "disabled" : "active" } : s
+        )
+      );
+      return { previous };
     },
-    onError: showError,
+    onSuccess: (_, member) =>
+      toast.success(`${member.status === "active" ? "Disabled" : "Enabled"} ${member.userName}.`),
+    onError: (err, _, context) => {
+      queryClient.setQueryData(staffQueryOptions.queryKey, context?.previous);
+      toast.error(err.message || "Could not update staff member.");
+    },
+    onSettled: refetchStaffOnly,
   });
 
   function handleRemoveStaff() {
     if (!staffToRemove || removeMutation.isPending) return;
-    setError("");
+    setRemoveError("");
     removeMutation.mutate(staffToRemove);
   }
 
-  // Clears any stale error before opening a confirmation, so a message from
-  // an earlier, unrelated action can't linger and read as if it applies here.
+  // Clears any stale error before opening a confirmation, so a failure from
+  // an earlier, unrelated removal can't linger and read as if it applies here.
   function openRemoveStaff(member: StaffMember) {
-    setError("");
-    setMessage("");
+    setRemoveError("");
     setStaffToRemove(member);
   }
 
   function startEditRole(member: StaffMember) {
-    setError("");
-    setMessage("");
     setEditingRoleId(member.id);
     setEditRoleValue(member.accessRoleId ?? "");
   }
@@ -160,14 +173,7 @@ function AccessPage() {
 
   function handleSaveRole(member: StaffMember) {
     if (!editRoleValue) return;
-    setError("");
     roleMutation.mutate({ member, accessRoleId: editRoleValue });
-  }
-
-  function handleToggleDisabled(member: StaffMember) {
-    setError("");
-    setMessage("");
-    toggleMutation.mutate(member);
   }
 
   const accessRoles = rolesQuery.data ?? [];
@@ -221,8 +227,6 @@ function AccessPage() {
       />
 
       <div className="mb-6 space-y-3">
-        {message && <Alert variant="success">{message}</Alert>}
-        {error && <Alert variant="error">{error}</Alert>}
         {loadError && <Alert variant="error">{loadError}</Alert>}
       </div>
 
@@ -262,7 +266,7 @@ function AccessPage() {
               </div>
 
               {staffQuery.isPending ? (
-                <LoadingState />
+                <SkeletonList />
               ) : staff.length === 0 ? (
                 <EmptyState title="No staff members yet" />
               ) : filteredStaff.length === 0 ? (
@@ -343,9 +347,9 @@ function AccessPage() {
                                   ? "You can't disable another staff member who also manages staff."
                                   : undefined
                               }
-                              onClick={() => handleToggleDisabled(member)}
+                              onClick={() => toggleMutation.mutate(member)}
                             >
-                              {togglingStatusId === member.id ? "..." : isActive ? "Disable" : "Enable"}
+                              {isActive ? "Disable" : "Enable"}
                             </Button>
                             {isActive && (
                               <Button
@@ -422,7 +426,7 @@ function AccessPage() {
             Remove {staffToRemove?.userName} from this hospital? They&apos;ll need to request access again to
             rejoin.
           </p>
-          {error && <Alert variant="error">{error}</Alert>}
+          {removeError && <Alert variant="error">{removeError}</Alert>}
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setStaffToRemove(null)}>
               Cancel

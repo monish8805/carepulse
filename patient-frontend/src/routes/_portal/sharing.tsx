@@ -26,7 +26,9 @@ import {
   Modal,
   PageContainer,
   PageHeader,
+  SkeletonList,
   toneForStatus,
+  useToast,
 } from "@/components/ui";
 
 // "vitals.continuous" -> "Vitals — Continuous", matching the category
@@ -75,16 +77,16 @@ function SharingPage() {
   // step every other irreversible action in the app has.
   const [grantToRevoke, setGrantToRevoke] = useState<PatientConsent | null>(null);
 
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const toast = useToast();
+  // Lookup/grant failures stay inline next to the form; list actions use toasts.
+  const [formError, setFormError] = useState("");
 
-  function showError(err: unknown) {
-    setMessage("");
-    setError(err instanceof Error ? err.message : "Something went wrong.");
+  function showFormError(err: Error) {
+    setFormError(err.message || "Something went wrong.");
   }
 
   function refetchGrants() {
-    return queryClient.invalidateQueries({ queryKey: ["consents"] });
+    return queryClient.invalidateQueries({ queryKey: consentsQuery.queryKey });
   }
 
   const lookupMutation = useMutation({
@@ -95,46 +97,54 @@ function SharingPage() {
       setConfirmed({ doctor, email: lookedUpEmail });
       setSelectedCategories([]);
     },
-    onError: showError,
+    onError: showFormError,
   });
 
   const grantMutation = useMutation({
     mutationFn: grantConsent,
     onSuccess: () => {
-      setMessage(`Access granted to ${confirmed?.doctor.name}.`);
+      toast.success(`Access granted to ${confirmed?.doctor.name}.`);
       setEmail("");
       setConfirmed(null);
       setSelectedCategories([]);
       return refetchGrants();
     },
-    onError: showError,
+    onError: showFormError,
   });
 
   const saveMutation = useMutation({
     mutationFn: (input: { grantId: string; dataCategories: string[] }) =>
       updateConsent(input.grantId, input.dataCategories),
     onSuccess: () => {
-      setMessage("Sharing preferences updated.");
+      toast.success("Sharing preferences updated.");
       setEditingId(null);
       return refetchGrants();
     },
-    onError: showError,
+    onError: (err) => toast.error(err.message || "Could not update sharing preferences."),
   });
 
+  // The row shows "revoked" instantly; the server's answer confirms or reverts it.
   const revokeMutation = useMutation({
     mutationFn: (grant: PatientConsent) => revokeConsentAsPatient(grant.id),
-    onSuccess: (_, grant) => {
-      setMessage(`Revoked ${grant.doctorName}'s access.`);
-      setGrantToRevoke(null);
-      return refetchGrants();
+    onMutate: async (grant) => {
+      await queryClient.cancelQueries({ queryKey: consentsQuery.queryKey });
+      const previous = queryClient.getQueryData(consentsQuery.queryKey);
+      queryClient.setQueryData(consentsQuery.queryKey, (list) =>
+        (list ?? []).map((g) => (g.id === grant.id ? { ...g, status: "revoked" as const } : g))
+      );
+      return { previous };
     },
-    onError: showError,
+    onSuccess: (_, grant) => toast.success(`Revoked ${grant.doctorName}'s access.`),
+    onError: (err, _, context) => {
+      queryClient.setQueryData(consentsQuery.queryKey, context?.previous);
+      toast.error(err.message || "Could not revoke access.");
+    },
+    onSettled: refetchGrants,
   });
 
   function handleLookup(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
-    setMessage("");
+    setFormError("");
     setConfirmed(null);
     lookupMutation.mutate(email);
   }
@@ -147,13 +157,11 @@ function SharingPage() {
 
   function handleGrant() {
     if (!confirmed || selectedCategories.length === 0) return;
-    setError("");
+    setFormError("");
     grantMutation.mutate({ doctorEmail: confirmed.email, dataCategories: selectedCategories });
   }
 
   function startEdit(grant: PatientConsent) {
-    setError("");
-    setMessage("");
     setEditingId(grant.id);
     setEditCategories(grant.dataCategories);
   }
@@ -170,22 +178,19 @@ function SharingPage() {
 
   function handleSaveEdit(grantId: string) {
     if (editCategories.length === 0) return;
-    setError("");
     saveMutation.mutate({ grantId, dataCategories: editCategories });
   }
 
   function handleRevoke() {
     if (!grantToRevoke) return;
-    setError("");
-    setMessage("");
     revokeMutation.mutate(grantToRevoke);
+    setGrantToRevoke(null);
   }
 
   const grants = grantsQuery.data ?? [];
   const lookingUp = lookupMutation.isPending;
   const granting = grantMutation.isPending;
   const saving = saveMutation.isPending;
-  const revokingId = revokeMutation.isPending ? revokeMutation.variables.id : null;
 
   if (session.isPending) {
     return (
@@ -216,8 +221,7 @@ function SharingPage() {
       />
 
       <div className="mb-6 space-y-3">
-        {message && <Alert variant="success">{message}</Alert>}
-        {error && <Alert variant="error">{error}</Alert>}
+        {formError && <Alert variant="error">{formError}</Alert>}
         {grantsQuery.isError && <Alert variant="error">{grantsQuery.error.message}</Alert>}
       </div>
 
@@ -290,7 +294,7 @@ function SharingPage() {
 
         <Card title="My shared access" description="Every doctor you've shared data with, past and present." icon={ClipboardList}>
           {grantsQuery.isPending ? (
-            <LoadingState />
+            <SkeletonList />
           ) : grants.length === 0 ? (
             <EmptyState title="You haven't shared access with anyone yet" />
           ) : (
@@ -327,14 +331,9 @@ function SharingPage() {
                           </Button>
                           <Button
                             variant="destructive-subtle"
-                            disabled={revokingId === grant.id}
-                            onClick={() => {
-                              setError("");
-                              setMessage("");
-                              setGrantToRevoke(grant);
-                            }}
+                            onClick={() => setGrantToRevoke(grant)}
                           >
-                            {revokingId === grant.id ? "Revoking..." : "Revoke"}
+                            Revoke
                           </Button>
                         </div>
                       )}
@@ -389,17 +388,12 @@ function SharingPage() {
             {grantToRevoke?.doctorName} will immediately lose access to your data. This can&apos;t be undone — you&apos;d
             have to look them up and grant access again from scratch.
           </p>
-          {error && <Alert variant="error">{error}</Alert>}
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setGrantToRevoke(null)}>
               Keep sharing
             </Button>
-            <Button
-              variant="destructive"
-              disabled={revokingId === grantToRevoke?.id}
-              onClick={handleRevoke}
-            >
-              {revokingId === grantToRevoke?.id ? "Revoking..." : "Revoke access"}
+            <Button variant="destructive" onClick={handleRevoke}>
+              Revoke access
             </Button>
           </div>
         </div>
