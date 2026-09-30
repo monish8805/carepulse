@@ -3,24 +3,19 @@ import { getMe, restoreSession } from "@/lib/api";
 
 // The current user (`data`), or null when logged out. Never errors —
 // restoreSession() resolves to null instead of throwing.
+//
+// Restored once per page load, then cached for the whole visit: an expired
+// access token is renewed by apiFetch itself (refresh-and-retry on 401), so
+// nothing needs to re-run restoreSession() on every page. Login writes the
+// new user in here; logout clears the whole cache; a refresh that fails
+// inside apiFetch sets it to null (see onSessionLost in src/router.tsx).
 export function useSession() {
   const query = useQuery({
     queryKey: ["session"],
     queryFn: restoreSession,
-    // Never "fresh": the refetch on every page mount is what refreshes the token.
-    staleTime: 0,
-    gcTime: 0,
+    staleTime: Infinity,
   });
-  // Every page mount re-runs restoreSession(), which is also what hands the
-  // page a fresh 15-minute access token — so a page stays pending until its
-  // OWN restore finishes, rather than rendering from whatever an earlier page
-  // cached. Otherwise its data queries could fire with an expired token, and a
-  // cached user/`null` from before a login/logout could flash first.
-  const ready = query.isFetchedAfterMount;
-  return {
-    isPending: !ready,
-    data: ready ? (query.data ?? null) : undefined,
-  };
+  return { isPending: query.isPending, data: query.data };
 }
 
 // The session user plus their current hospital context (role, canManageStaff,
@@ -37,12 +32,13 @@ export function useMe() {
     staleTime: 0,
     gcTime: 0,
   });
-  // Same reasoning as useSession: wait for this mount's own fetch, never
-  // render permission flags an earlier page cached.
+  // Wait for this mount's own fetch — never render permission flags an
+  // earlier page cached. A failed refetch keeps the previous `data` next to
+  // the error, so only a successful fetch counts as having a user.
   const ready = me.isFetchedAfterMount;
   return {
     isPending: session.isPending || (!!session.data && !ready),
-    user: ready ? (me.data ?? null) : null,
+    user: ready && me.isSuccess ? me.data : null,
     error: me.error,
   };
 }

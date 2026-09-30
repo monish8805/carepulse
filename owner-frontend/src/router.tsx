@@ -1,16 +1,12 @@
 import { createRouter } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { onSessionLost } from "@shared/api";
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        // The access token lives 15 minutes and apiFetch doesn't refresh it on a
-        // 401 — a page only gets a fresh one by calling restoreSession() when it
-        // mounts (see useSession). A background refetch on tab focus, after the
-        // tab sat idle, would fail with an expired token and show an error.
-        refetchOnWindowFocus: false,
         // Most failures here are 401/403/404 from the backend, which a retry
         // can't fix — it would only delay showing the error by several seconds.
         retry: false,
@@ -21,6 +17,10 @@ export function getRouter() {
       },
     },
   });
+
+  // apiFetch couldn't renew an expired access token (refresh cookie gone or
+  // revoked): show the logged-out state rather than an error.
+  onSessionLost(() => queryClient.setQueryData(["session"], null));
 
   return createRouter({
     routeTree,
