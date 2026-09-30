@@ -17,7 +17,7 @@ import type {
 } from "./types";
 
 // Shared client for the backend auth API. Every frontend passes its own
-// backend base URL (from NEXT_PUBLIC_API_URL) so this file has no per-app config.
+// backend base URL (from VITE_API_URL) so this file has no per-app config.
 
 // The access token is kept only in memory (a module variable) — never in
 // localStorage or a readable cookie. It's lost on page reload by design;
