@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Activity } from "lucide-react";
 import { login } from "@/lib/api";
+import { broadcastAuth } from "@/lib/authSync";
 import { Alert, Button, Card, TextField, ThemeToggle } from "@/components/ui";
 
 export const Route = createFileRoute("/login")({
@@ -26,6 +27,7 @@ function LoginPage() {
       // The session query is cached for the whole visit, so a "logged out"
       // answer from before this login must be replaced, not waited out.
       queryClient.setQueryData(["session"], result.user);
+      broadcastAuth("login");
       navigate({ to: "/" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");

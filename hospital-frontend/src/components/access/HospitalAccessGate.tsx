@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Search, ClipboardList, Clock, PauseCircle } from "lucide-react";
 import type { Hospital, MyAccessRequest } from "@shared/types";
@@ -42,13 +42,23 @@ export interface HospitalAccessGateProps {
   // actions rather than to unmount/replace this screen, so re-checking never
   // causes a jarring full-page flash.
   refreshing: boolean;
+  // When the layout last received an answer from the backend (the access
+  // query's dataUpdatedAt) — goes up on every re-resolution, even one that
+  // returns identical data.
+  resolvedAt: number;
 }
 
 // The only screen an unaffiliated/pending/disabled Hospital Portal user sees
 // — designed to read as a deliberate onboarding step, not a restricted-access
 // wall: a Stepper for progress, the same Card/IconBadge language as the rest
 // of the app, no red "you can't be here" styling anywhere.
-export default function HospitalAccessGate({ status, myRequests, onChanged, refreshing }: HospitalAccessGateProps) {
+export default function HospitalAccessGate({
+  status,
+  myRequests,
+  onChanged,
+  refreshing,
+  resolvedAt,
+}: HospitalAccessGateProps) {
   const hospitalsQuery = useQuery({
     queryKey: ["requestableHospitals"],
     queryFn: listAllHospitals,
@@ -58,20 +68,16 @@ export default function HospitalAccessGate({ status, myRequests, onChanged, refr
   const [error, setError] = useState("");
 
   // Set the instant the request succeeds, so "Permission sent" renders
-  // immediately rather than waiting on the background reconciliation below.
-  const [optimisticHospitalName, setOptimisticHospitalName] = useState<string | null>(null);
-
-  // Drop the optimistic override as soon as ANY fresh resolution arrives from
-  // the layout, not only when it comes back "pending". Clearing it only on
-  // "pending" meant that if the request didn't actually persist and the
-  // backend re-resolved to "none", the user stayed pinned on "Permission
-  // sent" forever: "Check again" could never flip the screen back, and
-  // "Cancel request" stayed disabled because no matching live entry existed.
-  // `myRequests` is a fresh array on every re-resolution, so keying on it
-  // clears the override exactly when real data supersedes it.
-  useEffect(() => {
-    setOptimisticHospitalName(null);
-  }, [status, myRequests]);
+  // immediately rather than waiting on the background reconciliation. It is
+  // stamped with the resolution it was made on top of, and stops applying as
+  // soon as ANY newer resolution arrives — not only one that says "pending".
+  // Clearing it only on "pending" meant that if the request didn't actually
+  // persist and the backend re-resolved to "none", the user stayed pinned on
+  // "Permission sent" forever: "Check again" could never flip the screen back,
+  // and "Cancel request" stayed disabled because no matching live entry existed.
+  const [optimistic, setOptimistic] = useState<{ hospitalName: string; resolvedAt: number } | null>(null);
+  const optimisticHospitalName =
+    optimistic && optimistic.resolvedAt === resolvedAt ? optimistic.hospitalName : null;
 
   const effectiveStatus = optimisticHospitalName ? "pending" : status;
   const liveEntry = myRequests.find((r) => r.status === status);
@@ -80,7 +86,7 @@ export default function HospitalAccessGate({ status, myRequests, onChanged, refr
   const requestMutation = useMutation({
     mutationFn: (hospital: Hospital) => requestHospitalAccess(hospital.id),
     onSuccess: (_, hospital) => {
-      setOptimisticHospitalName(hospital.name);
+      setOptimistic({ hospitalName: hospital.name, resolvedAt });
       onChanged();
     },
     onError: (err) => setError(err.message || "Could not submit your request."),
