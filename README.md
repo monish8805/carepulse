@@ -5,9 +5,9 @@ A healthcare app built as a modular monolith, with a shared backend and three se
 ## Structure
 
 - `backend/` — Express + TypeScript API, using MongoDB with Mongoose. One `User` collection and one auth system shared by every role (a person can hold more than one role, e.g. patient AND hospital staff). Layer-based structure: `controllers/`, `routes/`, `domain/` (business logic), `models/`, `middleware/`, `validators/`, `config/`, `utils/`, `scripts/`.
-- `patient-frontend/` — Next.js app for patients (register, login, forgot password). Port `3001`.
-- `hospital-frontend/` — Next.js app for hospital staff (register, login, forgot password). Port `3002`.
-- `owner-frontend/` — Next.js app for the platform owner (login only — no public registration). Port `3003`.
+- `patient-frontend/` — TanStack Start app for patients (register, login, forgot password). Port `3001`.
+- `hospital-frontend/` — TanStack Start app for hospital staff (register, login, forgot password). Port `3002`.
+- `owner-frontend/` — TanStack Start app for the platform owner (login only — no public registration). Port `3003`.
 - `shared/` — Types and a small API client shared by all three frontends.
 
 ## Running locally

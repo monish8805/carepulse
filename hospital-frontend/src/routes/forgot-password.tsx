@@ -1,0 +1,118 @@
+import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Activity } from "lucide-react";
+import { forgotPassword, resetPassword } from "@/lib/api";
+import { Alert, Button, Card, TextField, ThemeToggle } from "@/components/ui";
+
+export const Route = createFileRoute("/forgot-password")({
+  component: ForgotPasswordPage,
+});
+
+function ForgotPasswordPage() {
+  const [step, setStep] = useState<"email" | "reset" | "done">("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleRequestCode(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      await forgotPassword({ email });
+      setStep("reset");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleReset(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      await resetPassword({ email, code, newPassword });
+      setStep("done");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Reset failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="relative flex min-h-screen items-center justify-center bg-cp-page px-4 py-12 dark:bg-cp-page-dark">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+      <div className="w-full max-w-sm">
+        <div className="mb-6 flex flex-col items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-cp-primary text-white dark:bg-cp-primary-dark">
+            <Activity className="h-5 w-5" aria-hidden="true" strokeWidth={2} />
+          </span>
+          <div className="text-center">
+            <h1 className="text-xl font-semibold tracking-tight text-cp-text dark:text-cp-text-dark">CarePulse</h1>
+            <p className="mt-1 text-sm text-cp-text-muted dark:text-cp-text-muted-dark">Hospital Portal — Forgot password</p>
+          </div>
+        </div>
+
+        <Card>
+          {step === "email" && (
+            <form onSubmit={handleRequestCode} className="space-y-4">
+              <TextField
+                label="Email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+
+              {error && <Alert variant="error">{error}</Alert>}
+
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? "Sending code..." : "Send reset code"}
+              </Button>
+            </form>
+          )}
+
+          {step === "reset" && (
+            <form onSubmit={handleReset} className="space-y-4">
+              <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
+                Enter the code sent to <span className="font-medium">{email}</span> and your new password.
+              </p>
+              <TextField label="6-digit code" value={code} onChange={(e) => setCode(e.target.value)} required />
+              <TextField
+                label="New password"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+
+              {error && <Alert variant="error">{error}</Alert>}
+
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? "Resetting..." : "Reset password"}
+              </Button>
+            </form>
+          )}
+
+          {step === "done" && (
+            <div className="space-y-4">
+              <Alert variant="success">Password reset.</Alert>
+              <Link to="/login">
+                <Button className="w-full">Log in</Button>
+              </Link>
+            </div>
+          )}
+        </Card>
+      </div>
+    </main>
+  );
+}
