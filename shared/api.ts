@@ -28,16 +28,51 @@ export function getAccessToken(): string | null {
   return accessToken;
 }
 
-async function apiFetch<T>(baseUrl: string, path: string, options: RequestInit = {}): Promise<T> {
+// The portal whose refresh cookie apiFetch may use to recover from an expired
+// access token. Each app registers its own once (see its src/lib/api.ts) —
+// one portal per app, never switched at runtime.
+let refreshTarget: { baseUrl: string; portal: Role } | null = null;
+
+export function setRefreshPortal(baseUrl: string, portal: Role) {
+  refreshTarget = { baseUrl, portal };
+}
+
+// Called when a 401 couldn't be recovered (the refresh cookie is gone or was
+// revoked), so the app can drop its cached session and show the logged-out
+// state instead of an error.
+let sessionLostListener: (() => void) | null = null;
+
+export function onSessionLost(listener: () => void) {
+  sessionLostListener = listener;
+}
+
+// Endpoints whose 401 means "bad credentials / no session", not "access token
+// expired" — retrying them after a refresh would be wrong (or loop).
+const NO_REFRESH_PATHS = ["/api/auth/login", "/api/auth/refresh", "/api/auth/logout"];
+
+async function send(baseUrl: string, path: string, options: RequestInit): Promise<Response> {
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
 
-  const response = await fetch(`${baseUrl}${path}`, {
+  return fetch(`${baseUrl}${path}`, {
     ...options,
     headers,
     credentials: "include", // sends/receives the HttpOnly refresh-token cookie
   });
+}
+
+async function apiFetch<T>(baseUrl: string, path: string, options: RequestInit = {}): Promise<T> {
+  let response = await send(baseUrl, path, options);
+
+  // The access token lives 15 minutes. When it has expired, trade the refresh
+  // cookie for a new one (through restoreSession's shared in-flight promise, so
+  // a burst of 401s still causes exactly one refresh) and retry once.
+  if (response.status === 401 && refreshTarget && !NO_REFRESH_PATHS.includes(path)) {
+    const user = await restoreSession(refreshTarget.baseUrl, refreshTarget.portal);
+    if (user) response = await send(baseUrl, path, options);
+    else sessionLostListener?.();
+  }
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -103,7 +138,8 @@ export function resetPassword(
 let refreshInFlight: Promise<AuthUser | null> | null = null;
 
 // Call this once when the app loads: it trades the HttpOnly refresh cookie for a
-// fresh access token, restoring the session after a page reload. Returns null
+// fresh access token, restoring the session after a page reload. apiFetch also
+// calls it on its own whenever a request comes back 401 (expired token). Returns null
 // (rather than throwing) when there's no valid session, since that's the normal
 // "not logged in" case, not an error. `portal` must match the portal used at
 // login — each portal has its own separately-named refresh cookie.

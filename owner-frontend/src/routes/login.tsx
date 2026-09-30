@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Activity } from "lucide-react";
 import { login } from "@/lib/api";
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,7 +22,10 @@ function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await login({ email, password });
+      const result = await login({ email, password });
+      // The session query is cached for the whole visit, so a "logged out"
+      // answer from before this login must be replaced, not waited out.
+      queryClient.setQueryData(["session"], result.user);
       navigate({ to: "/" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");

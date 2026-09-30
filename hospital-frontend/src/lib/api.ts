@@ -3,6 +3,8 @@ import * as sharedApi from "@shared/api";
 const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
 const ROLE = "hospital" as const;
 
+sharedApi.setRefreshPortal(BACKEND_URL, ROLE);
+
 // Calls the backend health-check endpoint and returns whether it responded.
 export async function getBackendHealth(): Promise<boolean> {
   try {
