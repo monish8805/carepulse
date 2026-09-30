@@ -40,6 +40,30 @@ npm run seed:owner
 
 This creates one owner account (email/password are set in `backend/scripts/seedOwner.ts`).
 
+### Frontends
+
+Each portal is its own app. In three terminals:
+
+```
+cd patient-frontend  && npm install && npm run dev   # http://localhost:3001
+cd hospital-frontend && npm install && npm run dev   # http://localhost:3002
+cd owner-frontend    && npm install && npm run dev   # http://localhost:3003
+```
+
+Copy `.env.local.example` to `.env.local` in each if the API isn't on `http://localhost:5001`.
+In development, the round TanStack button in the bottom-right corner opens the Router and Query devtools.
+
+### Tests
+
+```
+cd backend && npm test        # API tests — use the real Atlas dev database and Brevo
+cd e2e && npm install && npx playwright install chromium
+npm test                      # browser tests for all three portals, backend faked — no setup needed
+```
+
+CI (`.github/workflows/ci.yml`) runs typecheck, lint and build for every frontend, the browser tests,
+and a backend typecheck on each push and pull request.
+
 ### Authentication
 
 - Short-lived access JWT (`{id, portal, hospitalId?}`, 15 min) returned in the login/refresh response body — the frontend keeps it in memory only, never in localStorage. `portal` and `hospitalId` are context, not permissions: they're never trusted for authorization, only for scoping which session this is.
