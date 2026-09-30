@@ -5,6 +5,7 @@ import { UserRound, Settings } from "lucide-react";
 import { logout } from "@/lib/api";
 import { healthQuery } from "@/lib/queries";
 import { useSession } from "@/lib/session";
+import { broadcastAuth, useAuthSync } from "@/lib/authSync";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import type { AccountMenuItem } from "./AccountMenu";
@@ -30,6 +31,7 @@ const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
 export default function OwnerLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  useAuthSync();
   const session = useSession();
   const health = useQuery(healthQuery);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -51,6 +53,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
       // still mounted here refetches into the cleared cache on the way out.
       await navigate({ to: "/login" });
       queryClient.clear();
+      broadcastAuth("logout");
     }
   }
 

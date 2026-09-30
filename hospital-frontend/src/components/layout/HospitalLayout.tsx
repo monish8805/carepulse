@@ -6,6 +6,7 @@ import type { SessionUser, MyAccessRequest } from "@shared/types";
 import { getMe, logout, listMyAccessRequests, selectHospital } from "@/lib/api";
 import { healthQuery } from "@/lib/queries";
 import { useSession } from "@/lib/session";
+import { broadcastAuth, useAuthSync } from "@/lib/authSync";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import type { AccountMenuItem } from "./AccountMenu";
@@ -71,6 +72,7 @@ function BrandMark() {
 export default function HospitalLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  useAuthSync();
   const pathname = useLocation().pathname;
   const [mobileOpen, setMobileOpen] = useState(false);
   const session = useSession();
@@ -85,11 +87,6 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
     // never shown the shell from a stale "active".
     staleTime: 0,
     gcTime: 0,
-    // HospitalAccessGate clears its optimistic "Permission sent" state whenever
-    // it receives a new `myRequests` array. Structural sharing would hand back
-    // the *same* array when a re-check returns identical data (e.g. a request
-    // that didn't persist), leaving the user pinned on "Permission sent".
-    structuralSharing: false,
   });
   const backendUp = health.data ?? null;
   // A re-check ("Check again"/cancel/submit) is a refetch, which keeps the
@@ -123,6 +120,7 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
       // still mounted here refetches into the cleared cache on the way out.
       await navigate({ to: "/login" });
       queryClient.clear();
+      broadcastAuth("logout");
     }
   }
 
@@ -177,6 +175,7 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
               myRequests={phase.myRequests}
               onChanged={handleChanged}
               refreshing={refreshing}
+              resolvedAt={access.dataUpdatedAt}
             />
           </Suspense>
         </div>
