@@ -120,11 +120,17 @@ export function defaultState(): HospitalState {
 
 // A fake of every endpoint the Hospital Portal uses, driven by a mutable
 // `state` the test can change mid-run (e.g. revoke a permission server-side).
-// Auth is modelled like the real backend: a request whose bearer token isn't
-// the current version gets a 401, and /refresh issues a new one.
+// Auth is modelled like the real backend: every access token issued since the
+// last expiry stays valid, and a request carrying an expired one gets a 401.
+// A refresh in one tab must NOT invalidate another tab's token — a new JWT
+// never revokes an older one. Modelling "only the newest token works" made two
+// tabs refreshing at once knock out each other's requests (seen in CI's trace
+// of the cross-tab login test). Bumping `tokenVersion` — a test simulating
+// expiry, or a fresh login — expires them all.
 export function hospitalBackend(overrides: Partial<HospitalState> = {}, delayMs = 0) {
   const state: HospitalState = { ...defaultState(), ...overrides };
-  const token = () => `t${state.tokenVersion}`;
+  let issued = 0;
+  const issueToken = () => `t${state.tokenVersion}.${++issued}`;
   const me = () => ({
     id: "u1",
     name: "Ada Admin",
@@ -146,7 +152,7 @@ export function hospitalBackend(overrides: Partial<HospitalState> = {}, delayMs 
         : null,
   });
   const authed = (handler: () => ReturnType<typeof json>) => (request: { headers(): Record<string, string> }) =>
-    request.headers()["authorization"] === `Bearer ${token()}` && state.loggedIn
+    (request.headers()["authorization"] ?? "").startsWith(`Bearer t${state.tokenVersion}.`) && state.loggedIn
       ? handler()
       : json({ message: "Session expired. Please log in again." }, 401);
 
@@ -154,14 +160,13 @@ export function hospitalBackend(overrides: Partial<HospitalState> = {}, delayMs 
     {
       "POST /api/auth/refresh": () => {
         if (!state.loggedIn || !state.refreshWorks) return json({ message: "Not logged in." }, 401);
-        state.tokenVersion++;
-        return json({ accessToken: token(), user: me() });
+        return json({ accessToken: issueToken(), user: me() });
       },
       "POST /api/auth/login": () => {
         state.loggedIn = true;
         state.refreshWorks = true;
         state.tokenVersion++;
-        return json({ message: "ok", accessToken: token(), user: me() });
+        return json({ message: "ok", accessToken: issueToken(), user: me() });
       },
       "POST /api/auth/logout": () => {
         state.loggedIn = false;
@@ -182,7 +187,7 @@ export function hospitalBackend(overrides: Partial<HospitalState> = {}, delayMs 
       }),
       "POST /api/hospital/select": authed(() => {
         state.hospitalSelected = state.membership === "active";
-        return json({ accessToken: token(), hospital: me().hospital });
+        return json({ accessToken: issueToken(), hospital: me().hospital });
       }),
       "GET /api/hospital/access-roles": authed(() =>
         json({ accessRoles: [{ id: "r1", name: "Nurse", permissions: ["patient.view"], isActive: true }] })
