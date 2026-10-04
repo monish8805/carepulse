@@ -38,7 +38,18 @@ export interface HospitalContext {
   // admin every permission — see domain/permission.service.ts) or for staff
   // whose current AccessRole includes patient.view.
   canViewPatients: boolean;
+  // Same shape for the clinical-data pages: vitals.view (a patient's vitals
+  // and sepsis risk), alerts.view and alerts.acknowledge. Display/gating only —
+  // each of those routes re-checks its permission with requirePermission.
+  canViewVitals: boolean;
+  canViewAlerts: boolean;
+  canAcknowledgeAlerts: boolean;
 }
+
+type HospitalCapabilities = Pick<
+  HospitalContext,
+  "canManageStaff" | "canViewPatients" | "canViewVitals" | "canViewAlerts" | "canAcknowledgeAlerts"
+>;
 
 // Resolves the permission set ONCE and derives every frontend-facing capability
 // flag from it. These were two separate helpers that each called
@@ -50,7 +61,7 @@ async function resolveHospitalCapabilities(
   userId: string,
   hospitalId: string,
   role: string
-): Promise<{ canManageStaff: boolean; canViewPatients: boolean }> {
+): Promise<HospitalCapabilities> {
   const permissions = await resolvePermissions(userId, hospitalId);
   return {
     // role: "admin" is still short-circuited here: an admin manages staff by
@@ -59,6 +70,9 @@ async function resolveHospitalCapabilities(
     // is belt-and-braces rather than the only path.
     canManageStaff: role === "admin" || permissions.includes("staff.manage"),
     canViewPatients: permissions.includes("patient.view"),
+    canViewVitals: permissions.includes("vitals.view"),
+    canViewAlerts: permissions.includes("alerts.view"),
+    canAcknowledgeAlerts: permissions.includes("alerts.acknowledge"),
   };
 }
 
@@ -92,17 +106,12 @@ export async function verifyActiveMembership(userId: string, hospitalId: string)
     throw new HttpError(403, "You do not have access to this hospital.");
   }
 
-  const { canManageStaff, canViewPatients } = await resolveHospitalCapabilities(
-    userId,
-    hospitalId,
-    membership.role
-  );
+  const capabilities = await resolveHospitalCapabilities(userId, hospitalId, membership.role);
   return {
     id: membership.hospitalId._id.toString(),
     name: membership.hospitalId.name,
     role: membership.role,
-    canManageStaff,
-    canViewPatients,
+    ...capabilities,
   };
 }
 
@@ -122,17 +131,12 @@ export async function getCurrentHospitalContext(
 
   if (!membership || !membership.hospitalId.isActive) return null;
 
-  const { canManageStaff, canViewPatients } = await resolveHospitalCapabilities(
-    userId,
-    hospitalId,
-    membership.role
-  );
+  const capabilities = await resolveHospitalCapabilities(userId, hospitalId, membership.role);
   return {
     id: membership.hospitalId._id.toString(),
     name: membership.hospitalId.name,
     role: membership.role,
-    canManageStaff,
-    canViewPatients,
+    ...capabilities,
   };
 }
 

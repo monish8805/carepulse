@@ -4,6 +4,8 @@ import * as accessRoleController from "../controllers/accessRole.controller";
 import * as accessRequestController from "../controllers/accessRequest.controller";
 import * as staffController from "../controllers/staff.controller";
 import * as patientConsentController from "../controllers/patientConsent.controller";
+import * as vitalsController from "../controllers/vitals.controller";
+import * as alertController from "../controllers/alert.controller";
 import * as validate from "../validators/hospital.validator";
 import * as validateAccessRole from "../validators/accessRole.validator";
 import * as validateAccessRequest from "../validators/accessRequest.validator";
@@ -75,5 +77,13 @@ router.patch("/profile", validatePatientConsent.validateUpdateProfile, hospitalC
 // giving up access you hold is never a privilege concern.
 router.get("/patient-consents", requirePermission("patient.view"), patientConsentController.listGrantedToMe);
 router.post("/patient-consents/:id/revoke", patientConsentController.revokeGrant);
+
+// Clinical data: each route needs BOTH a live permission (requirePermission,
+// resolved fresh) AND an active vitals.continuous consent from the patient
+// (checked in the domain layer). A missing consent is a 404, never a hint
+// that the patient exists.
+router.get("/patients/:id/vitals", requirePermission("vitals.view"), vitalsController.listPatientVitals);
+router.get("/alerts", requirePermission("alerts.view"), alertController.listAlerts);
+router.post("/alerts/:id/acknowledge", requirePermission("alerts.acknowledge"), alertController.acknowledgeAlert);
 
 export default router;

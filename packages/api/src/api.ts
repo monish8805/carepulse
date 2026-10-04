@@ -14,6 +14,9 @@ import type {
   DoctorLookupResult,
   PatientConsent,
   GrantedPatientSummary,
+  VitalsHistory,
+  PatientVitals,
+  SepsisAlert,
 } from "./types";
 
 // Shared client for the backend API (@carepulse/api). Every frontend passes
@@ -238,6 +241,21 @@ export function revokeConsentAsPatient(baseUrl: string, grantId: string): Promis
   return apiFetch(baseUrl, `/api/patient/consents/${grantId}/revoke`, { method: "POST" });
 }
 
+// The patient's own date of birth, gender and blood type — required on first
+// login — and optional guardian phone ("" clears it).
+export function updatePatientProfile(
+  baseUrl: string,
+  input: { dateOfBirth: string; gender: string; bloodType: string; guardianPhone: string }
+): Promise<{ message: string; user: AuthUser }> {
+  return apiFetch(baseUrl, "/api/patient/profile", { method: "PATCH", body: JSON.stringify(input) });
+}
+
+// The patient's own readings and sepsis scores. Recording happens through the
+// backend's replay script for now (backend/scripts/replayVitals.ts).
+export function listMyVitals(baseUrl: string): Promise<VitalsHistory> {
+  return apiFetch(baseUrl, "/api/patient/vitals");
+}
+
 // Hospital Portal only, below this point.
 
 export async function listHospitalMemberships(baseUrl: string): Promise<HospitalMembership[]> {
@@ -403,6 +421,22 @@ export async function listGrantedPatients(baseUrl: string): Promise<GrantedPatie
 // backend's routes/hospital.routes.ts note: revoking is never a privilege concern).
 export function revokeConsentAsDoctor(baseUrl: string, grantId: string): Promise<{ message: string }> {
   return apiFetch(baseUrl, `/api/hospital/patient-consents/${grantId}/revoke`, { method: "POST" });
+}
+
+// Clinical data. Each needs its permission (vitals.view / alerts.view /
+// alerts.acknowledge — see HospitalContext's can* flags) AND an active
+// vitals.continuous grant from the patient; the backend checks both.
+export function getPatientVitals(baseUrl: string, patientId: string): Promise<PatientVitals> {
+  return apiFetch(baseUrl, `/api/hospital/patients/${patientId}/vitals`);
+}
+
+export async function listAlerts(baseUrl: string): Promise<SepsisAlert[]> {
+  const data = await apiFetch<{ alerts: SepsisAlert[] }>(baseUrl, "/api/hospital/alerts");
+  return data.alerts;
+}
+
+export function acknowledgeAlert(baseUrl: string, alertId: string): Promise<{ message: string }> {
+  return apiFetch(baseUrl, `/api/hospital/alerts/${alertId}/acknowledge`, { method: "POST" });
 }
 
 // Owner Portal only, below this point.

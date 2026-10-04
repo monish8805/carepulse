@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "seed:owner": "ts-node scripts/seedOwner.ts",
     "audit:multi-hospital": "ts-node scripts/auditMultiHospitalMemberships.ts",
+    "replay:vitals": "ts-node scripts/replayVitals.ts",
     "test": "vitest run"
   },
   "dependencies": {

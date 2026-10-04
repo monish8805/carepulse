@@ -10,6 +10,8 @@ interface PopulatedUser {
   _id: Types.ObjectId;
   name: string;
   specialization?: string | null;
+  dateOfBirth?: Date | null;
+  gender?: string | null;
 }
 
 export interface DoctorLookupResult {
@@ -34,6 +36,8 @@ export interface GrantedPatientSummary {
   id: string;
   patientId: string;
   patientName: string;
+  patientDateOfBirth: Date | null;
+  patientGender: string | null;
   dataCategories: string[];
   createdAt: Date;
 }
@@ -243,9 +247,35 @@ export async function listGrantedToMe(doctorId: string): Promise<GrantedPatientS
         id: grant._id.toString(),
         patientId: grant.patientId._id.toString(),
         patientName: grant.patientId.name,
+        patientDateOfBirth: grant.patientId.dateOfBirth ?? null,
+        patientGender: grant.patientId.gender ?? null,
         dataCategories: grant.dataCategories,
         createdAt: grant.createdAt,
       },
     ];
   });
+}
+
+// The consent half of the dual gate every clinical read needs; the other half
+// is requirePermission at the route, resolved fresh per request. Neither is
+// enough alone: a grant to a doctor who has since lost the permission must not
+// open data, and the permission alone opens nothing a patient hasn't shared.
+export async function consentedPatientIds(doctorId: string, category: DataCategory): Promise<Types.ObjectId[]> {
+  const grants = await PatientConsentModel.find({ doctorId, status: "active", dataCategories: category });
+  return grants.map((grant) => grant.patientId);
+}
+
+// 404 rather than 403 when there's no grant, so a doctor can't use this to
+// learn whether some patient id exists — same reason lookupDoctorByEmail
+// answers every miss identically.
+export async function assertActiveConsent(doctorId: string, patientId: string, category: DataCategory): Promise<void> {
+  const grant = await PatientConsentModel.findOne({
+    patientId,
+    doctorId,
+    status: "active",
+    dataCategories: category,
+  });
+  if (!grant) {
+    throw new HttpError(404, "Patient not found.");
+  }
 }

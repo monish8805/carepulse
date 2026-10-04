@@ -1,5 +1,5 @@
 import mongoose, { HydratedDocument } from "mongoose";
-import { UserModel, User, Role } from "../models/user.model";
+import { UserModel, User, Role, Gender, GENDERS, BloodType, BLOOD_TYPES } from "../models/user.model";
 import { hashValue, compareValue } from "../utils/hash";
 import { generateOtpCode, OTP_EXPIRES_IN_MINUTES, OTP_MAX_ATTEMPTS } from "../utils/otp";
 import { sendOtpEmail } from "../utils/email";
@@ -18,6 +18,12 @@ interface PublicUser {
   // access-sensitive: it's just descriptive text, so there's no portal-
   // isolation reason to hide it.
   specialization?: string | null;
+  // Patient demographics (null until the patient fills them in). The
+  // session's own data, so returned on any portal like specialization.
+  dateOfBirth: Date | null;
+  gender: string | null;
+  bloodType: string | null;
+  guardianPhone: string | null;
 }
 
 interface AuthSession {
@@ -34,8 +40,21 @@ function toPublicUser(user: {
   name: string;
   email: string;
   specialization?: string | null;
+  dateOfBirth?: Date | null;
+  gender?: string | null;
+  bloodType?: string | null;
+  guardianPhone?: string | null;
 }): PublicUser {
-  return { id: String(user._id), name: user.name, email: user.email, specialization: user.specialization ?? null };
+  return {
+    id: String(user._id),
+    name: user.name,
+    email: user.email,
+    specialization: user.specialization ?? null,
+    dateOfBirth: user.dateOfBirth ?? null,
+    gender: user.gender ?? null,
+    bloodType: user.bloodType ?? null,
+    guardianPhone: user.guardianPhone ?? null,
+  };
 }
 
 // Used for the OTP/password read-modify-write paths below, which need async
@@ -431,6 +450,54 @@ export async function updateSpecialization(userId: string, specialization: strin
     () => UserModel.findById(userId),
     (u) => {
       u.specialization = specialization.trim();
+    }
+  );
+  return toPublicUser(user);
+}
+
+const MAX_AGE_YEARS = 130;
+
+// Digits with optional +, spaces, dashes and brackets; 7–15 digits covers
+// local numbers through full international ones (E.164 caps at 15).
+function isPlausiblePhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, "").length;
+  return /^\+?[\d\s()-]+$/.test(phone) && digits >= 7 && digits <= 15;
+}
+
+// The patient's own profile: date of birth, gender and blood type (all
+// required by the Patient Portal) and an optional guardian phone — an empty
+// or null guardianPhone clears it. Checked before the write (not inside
+// withVersionRetry's mutate) so a rejected value never reaches save().
+export async function updatePatientProfile(
+  userId: string,
+  input: { dateOfBirth: Date; gender: string; bloodType: string; guardianPhone: string | null }
+): Promise<PublicUser> {
+  const earliest = new Date();
+  earliest.setUTCFullYear(earliest.getUTCFullYear() - MAX_AGE_YEARS);
+  if (input.dateOfBirth.getTime() > Date.now()) {
+    throw new HttpError(400, "Date of birth can't be in the future.");
+  }
+  if (input.dateOfBirth < earliest) {
+    throw new HttpError(400, `Date of birth can't be more than ${MAX_AGE_YEARS} years ago.`);
+  }
+  if (!(GENDERS as readonly string[]).includes(input.gender)) {
+    throw new HttpError(400, `Gender must be one of: ${GENDERS.join(", ")}.`);
+  }
+  if (!(BLOOD_TYPES as readonly string[]).includes(input.bloodType)) {
+    throw new HttpError(400, `Blood type must be one of: ${BLOOD_TYPES.join(", ")}.`);
+  }
+  const guardianPhone = input.guardianPhone?.trim() || null;
+  if (guardianPhone && !isPlausiblePhone(guardianPhone)) {
+    throw new HttpError(400, "Guardian phone must be a phone number (7–15 digits).");
+  }
+
+  const { user } = await withVersionRetry(
+    () => UserModel.findById(userId),
+    (u) => {
+      u.dateOfBirth = input.dateOfBirth;
+      u.gender = input.gender as Gender;
+      u.bloodType = input.bloodType as BloodType;
+      u.guardianPhone = guardianPhone ?? undefined;
     }
   );
   return toPublicUser(user);

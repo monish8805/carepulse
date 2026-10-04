@@ -70,3 +70,16 @@ export function updateConsent(grantId: string, dataCategories: string[]) {
 export function revokeConsentAsPatient(grantId: string) {
   return sharedApi.revokeConsentAsPatient(BACKEND_URL, grantId);
 }
+
+export function listMyVitals() {
+  return sharedApi.listMyVitals(BACKEND_URL);
+}
+
+export function updatePatientProfile(input: {
+  dateOfBirth: string;
+  gender: string;
+  bloodType: string;
+  guardianPhone: string;
+}) {
+  return sharedApi.updatePatientProfile(BACKEND_URL, input);
+}

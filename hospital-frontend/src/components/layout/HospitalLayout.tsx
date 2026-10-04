@@ -191,14 +191,15 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
   // permission its page requires, rather than showing it and letting the
   // page render an EmptyState — presentation only (same as any other nav
   // filtering, see CLAUDE.md): the actual boundary is still server-side
-  // (requirePermission("patient.view"), assertCanManageStaff), so this is
-  // purely about not advertising a page a viewer can't use, not a security
-  // control. Both booleans are resolved fresh, server-side, on every /me —
+  // (requirePermission("patient.view" / "alerts.view"), assertCanManageStaff),
+  // so this is purely about not advertising a page a viewer can't use, not a
+  // security control. These booleans are resolved fresh, server-side, on every /me —
   // never cached client-side beyond this render.
   const visibleNavSections = HOSPITAL_NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter((item) => {
       if (item.href === "/patients") return user.hospital?.canViewPatients ?? false;
+      if (item.href === "/alerts") return user.hospital?.canViewAlerts ?? false;
       if (item.href === "/access") return user.hospital?.canManageStaff ?? false;
       return true;
     }),

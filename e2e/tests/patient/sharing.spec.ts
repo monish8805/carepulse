@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { FakeBackend, json } from "../../fakeBackend";
+import { PATIENT } from "./patient";
 
 const DOCTOR = { doctorId: "d1", name: "Dr Dee", specialization: "Cardiology", hospitalName: "City Hospital" };
 
@@ -18,7 +19,7 @@ function patientBackend(delayMs = 0) {
   const state = { grants: [] as Grant[] };
   const backend = new FakeBackend(
     {
-      "POST /api/auth/refresh": () => json({ accessToken: "t", user: { id: "p1", name: "Pat One", email: "p@x.com" } }),
+      "POST /api/auth/refresh": () => json({ accessToken: "t", user: PATIENT }),
       "GET /api/patient/doctors": (request) =>
         new URL(request.url()).searchParams.get("email") === "doc@x.com"
           ? json({ doctor: DOCTOR })

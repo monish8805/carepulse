@@ -1,0 +1,59 @@
+{
+ "seed": 42,
+ "sequence_length": 6,
+ "n_features": 7,
+ "vitals": [
+  "HR",
+  "O2Sat",
+  "Temp",
+  "SBP",
+  "MAP",
+  "DBP",
+  "Resp"
+ ],
+ "valid_ranges": {
+  "HR": [
+   20,
+   300
+  ],
+  "O2Sat": [
+   50,
+   100
+  ],
+  "Temp": [
+   30,
+   43
+  ],
+  "SBP": [
+   40,
+   280
+  ],
+  "MAP": [
+   20,
+   220
+  ],
+  "DBP": [
+   10,
+   200
+  ],
+  "Resp": [
+   3,
+   70
+  ]
+ },
+ "split": {
+  "val": 0.15,
+  "test": 0.15
+ },
+ "hidden_dim": 64,
+ "layers": 2,
+ "dropout": 0.2,
+ "latent_dim": 32,
+ "ae_hidden": 64,
+ "batch_size": 256,
+ "lr": 0.001,
+ "epochs": 30,
+ "patience": 4,
+ "pos_weight": "sqrt",
+ "max_stay_hours": 336
+}

@@ -6,7 +6,7 @@ import type { GrantedPatientSummary } from "@carepulse/api/types";
 import { revokeConsentAsDoctor } from "@/lib/api";
 import { useMe } from "@/lib/session";
 import { cachedHospitalContext, grantedPatientsQuery } from "@/lib/queries";
-import { prefetch } from "@carepulse/portal";
+import { formatDemographics, prefetch } from "@carepulse/portal";
 import {
   Alert,
   Avatar,
@@ -54,6 +54,7 @@ function PatientsPage() {
   const queryClient = useQueryClient();
   const { isPending, user, error: meError } = useMe();
   const canViewPatients = user?.hospital?.canViewPatients ?? false;
+  const canViewVitals = user?.hospital?.canViewVitals ?? false;
   const patientsQuery = useQuery({ ...grantedPatientsQuery, enabled: canViewPatients });
   // A doctor giving up access cannot undo it themselves — only the patient can
   // grant again — so it gets the same confirmation step as every other
@@ -147,14 +148,30 @@ function PatientsPage() {
                         <p className="truncate text-sm font-medium text-cp-text dark:text-cp-text-dark">
                           {patient.patientName}
                         </p>
+                        {formatDemographics(patient.patientDateOfBirth, patient.patientGender) && (
+                          <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
+                            {formatDemographics(patient.patientDateOfBirth, patient.patientGender)}
+                          </p>
+                        )}
                         <p className="font-mono text-xs text-cp-text-subtle dark:text-cp-text-subtle-dark">
                           Since {formatDate(patient.createdAt)}
                         </p>
                       </div>
                     </div>
-                    <Button variant="destructive-subtle" onClick={() => setPatientToRevoke(patient)}>
-                      Give up access
-                    </Button>
+                    <div className="flex items-center gap-3">
+                      {canViewVitals && patient.dataCategories.includes("vitals.continuous") && (
+                        <Link
+                          to="/patients/$patientId"
+                          params={{ patientId: patient.patientId }}
+                          className="text-sm font-medium text-cp-primary hover:underline dark:text-cp-primary-dark"
+                        >
+                          View vitals
+                        </Link>
+                      )}
+                      <Button variant="destructive-subtle" onClick={() => setPatientToRevoke(patient)}>
+                        Give up access
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pl-10">
                     {patient.dataCategories.map((category) => (
