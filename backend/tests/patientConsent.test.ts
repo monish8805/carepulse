@@ -97,12 +97,13 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await PatientConsentModel.deleteMany({ patientId: { $exists: true } }).then(async () => {
-    const emails = cleanupUserEmails;
-    const users = await UserModel.find({ email: { $in: emails } });
-    const userIds = users.map((u) => u._id);
-    await PatientConsentModel.deleteMany({ $or: [{ patientId: { $in: userIds } }, { doctorId: { $in: userIds } }] });
-  });
+  // Only this file's own accounts. These tests run against the shared dev
+  // database: a delete that isn't scoped to cleanupUserEmails (this used to
+  // also delete every consent with a patientId — i.e. all of them) wipes real
+  // patients' data-sharing grants on every test run.
+  const users = await UserModel.find({ email: { $in: cleanupUserEmails } });
+  const userIds = users.map((u) => u._id);
+  await PatientConsentModel.deleteMany({ $or: [{ patientId: { $in: userIds } }, { doctorId: { $in: userIds } }] });
   await AccessRoleModel.deleteMany({ hospital: { $in: cleanupHospitalIds } });
   await HospitalMembershipModel.deleteMany({ hospitalId: { $in: cleanupHospitalIds } });
   await HospitalModel.deleteMany({ _id: { $in: cleanupHospitalIds } });

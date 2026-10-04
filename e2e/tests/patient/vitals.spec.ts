@@ -37,6 +37,7 @@ test("the patient sees their readings, their current risk and the disclaimer", a
   await expect(page.getByRole("heading", { name: "My Vitals" })).toBeVisible();
   await expect(page.getByText(/research prototype/i)).toBeVisible();
   await expect(page.getByText("3.1% estimated probability")).toBeVisible();
+  await page.getByRole("button", { name: /^Readings/ }).click();
   await expect(page.getByRole("cell", { name: "101" })).toBeVisible();
   await expect(page.getByRole("link", { name: "My Vitals" }).first()).toBeVisible();
 });

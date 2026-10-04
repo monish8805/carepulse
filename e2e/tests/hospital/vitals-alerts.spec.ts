@@ -90,6 +90,7 @@ test("a patient's vitals page opens from the list only for continuous-vitals gra
   await expect(page.getByRole("heading", { name: "Pat One" })).toBeVisible();
   await expect(page.getByText(DISCLAIMER)).toBeVisible();
   await expect(page.getByText("7.1% estimated probability")).toBeVisible();
+  await page.getByRole("button", { name: /^Readings/ }).click();
   await expect(page.getByRole("cell", { name: "118" })).toBeVisible();
   await expect(page.getByRole("cell", { name: "ELEVATED" })).toBeVisible();
 });
@@ -141,6 +142,7 @@ test("the doctor's patient page shows age and gender, the ML summary, trends and
   await expect(summary.getByText("not a medical diagnosis")).toBeVisible();
 
   // Trends: ML risk first, with the tier axis; tabs swap the one chart shown.
+  await page.getByRole("button", { name: /Trends \/ ML Analysis/ }).click();
   await expect(page.getByRole("tab", { name: "ML risk" })).toHaveAttribute("aria-selected", "true");
   const chart = page.getByRole("img", { name: /over time/ });
   await expect(chart).toHaveAttribute("aria-label", "ML risk over time, 2 readings");
@@ -155,28 +157,34 @@ test("the doctor's patient page shows age and gender, the ML summary, trends and
   await expect(page.getByText("Upload Chest X-ray")).toBeVisible();
 });
 
-test("the trends and readings cards can be hidden and shown again", async ({ page }) => {
+test("the trends and readings cards start closed and open on demand", async ({ page }) => {
   const { backend } = hospitalBackend();
+  const chartCode: string[] = [];
+  page.on("request", (request) => request.url().includes("VitalsTrends") && chartCode.push(request.url()));
   await backend.attach(page);
   await page.goto("/patients/p1");
+  await expect(page.getByRole("heading", { name: "ML prediction summary" })).toBeVisible();
 
   const trendsToggle = page.getByRole("button", { name: /Trends \/ ML Analysis/ });
   const chart = page.getByRole("img", { name: /over time/ });
-  await expect(trendsToggle).toHaveAttribute("aria-expanded", "true");
-  await expect(chart).toBeVisible();
-  await trendsToggle.click();
   await expect(trendsToggle).toHaveAttribute("aria-expanded", "false");
   await expect(trendsToggle).toContainText("Show");
   await expect(chart).toHaveCount(0);
+  // Closed means the chart code isn't even downloaded yet.
+  expect(chartCode).toEqual([]);
   await trendsToggle.click();
+  await expect(trendsToggle).toHaveAttribute("aria-expanded", "true");
   await expect(chart).toBeVisible();
+  await trendsToggle.click();
+  await expect(chart).toHaveCount(0);
 
   const readingsToggle = page.getByRole("button", { name: /^Readings/ });
-  await expect(page.getByRole("cell", { name: "118" })).toBeVisible();
-  await readingsToggle.click();
+  await expect(readingsToggle).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByRole("cell", { name: "118" })).toHaveCount(0);
-  // The count stays visible while the table is hidden.
+  // The count stays visible while the table is closed.
   await expect(page.getByText("2 reading(s), newest first.")).toBeVisible();
   await readingsToggle.click();
   await expect(page.getByRole("cell", { name: "118" })).toBeVisible();
+  await readingsToggle.click();
+  await expect(page.getByRole("cell", { name: "118" })).toHaveCount(0);
 });

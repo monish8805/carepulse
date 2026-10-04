@@ -115,7 +115,13 @@ export default function VitalsHistory({ history }: { history: VitalsHistoryData 
         )}
       </Card>
 
-      <Card title="Trends / ML Analysis" description="Pick a measurement to chart over time." icon={Activity} collapsible>
+      <Card
+        title="Trends / ML Analysis"
+        description="Pick a measurement to chart over time."
+        icon={Activity}
+        collapsible
+        defaultOpen={false}
+      >
         <Suspense fallback={<Skeleton className="h-80 w-full" />}>
           <VitalsTrends history={history} />
         </Suspense>
@@ -126,6 +132,7 @@ export default function VitalsHistory({ history }: { history: VitalsHistoryData 
         description={`${history.readings.length} reading(s), newest first.`}
         icon={HeartPulse}
         collapsible
+        defaultOpen={false}
       >
         <div className="-mx-5 overflow-x-auto px-5">
           <table className="w-full min-w-[640px] text-left text-sm">

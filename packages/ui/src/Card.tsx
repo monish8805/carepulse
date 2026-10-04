@@ -20,9 +20,11 @@ interface CardProps {
   children?: ReactNode;
   className?: string;
   // Lets the reader hide the body (e.g. long charts/tables) and bring it back.
-  // The title becomes the toggle button, with a visible Hide/Show label. Starts
-  // open; the choice isn't remembered across pages.
+  // The title becomes the toggle button, with a visible Hide/Show label. The
+  // choice isn't remembered across pages.
   collapsible?: boolean;
+  // Whether a collapsible card starts open (default) or closed.
+  defaultOpen?: boolean;
 }
 
 export default function Card({
@@ -33,8 +35,9 @@ export default function Card({
   children,
   className = "",
   collapsible = false,
+  defaultOpen = true,
 }: CardProps) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(defaultOpen);
   const bodyId = useId();
   const showBody = !collapsible || open;
 
