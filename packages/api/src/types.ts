@@ -10,7 +10,21 @@ export interface AuthUser {
   // ever meaningful for a hospital-role account, but present on any portal
   // since it's descriptive text, not access-sensitive.
   specialization?: string | null;
+  // Patient demographics — null until the patient fills them in (the Patient
+  // Portal requires both on first login). dateOfBirth is an ISO date at UTC midnight.
+  dateOfBirth?: string | null;
+  gender?: Gender | null;
+  // Required with DOB/gender ("unknown" is a valid answer); guardianPhone is optional.
+  bloodType?: BloodType | null;
+  guardianPhone?: string | null;
 }
+
+export const GENDERS = ["male", "female", "other"] as const;
+export type Gender = (typeof GENDERS)[number];
+
+// Mirrors backend/models/user.model.ts.
+export const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "unknown"] as const;
+export type BloodType = (typeof BLOOD_TYPES)[number];
 
 export interface HospitalContext {
   id: string;
@@ -26,6 +40,11 @@ export interface HospitalContext {
   // display/gating only; NOT automatically true for role: "admin" (unlike
   // canManageStaff) — see backend's domain/hospital.service.ts.
   canViewPatients: boolean;
+  // vitals.view / alerts.view / alerts.acknowledge, same display-only role:
+  // each clinical-data request is still checked server-side.
+  canViewVitals: boolean;
+  canViewAlerts: boolean;
+  canAcknowledgeAlerts: boolean;
 }
 
 // What GET /me returns: scoped to whichever portal the session was authenticated
@@ -142,8 +161,77 @@ export interface GrantedPatientSummary {
   id: string;
   patientId: string;
   patientName: string;
+  patientDateOfBirth: string | null;
+  patientGender: Gender | null;
   dataCategories: string[];
   createdAt: string;
+}
+
+// Vitals and the sepsis early-warning score (backend's domain/vitals.service.ts,
+// domain/inference.service.ts, domain/alert.service.ts). Mirrors
+// backend/config/vitals.ts — the model's own field names.
+export const VITALS = ["HR", "O2Sat", "Temp", "SBP", "MAP", "DBP", "Resp"] as const;
+export type Vital = (typeof VITALS)[number];
+
+export type RiskLevel = "LOW" | "ELEVATED" | "HIGH";
+
+export interface VitalsReading extends Record<Vital, number | null> {
+  id: string;
+  recordedAt: string;
+}
+
+// status "unavailable" means the model couldn't score this reading — show it
+// as unknown risk, never as low.
+export interface SepsisPrediction {
+  id: string;
+  readingId: string;
+  status: "scored" | "unavailable";
+  sepsisProbability: number | null;
+  riskLevel: RiskLevel | null;
+  modelKey: string | null;
+  modelVersion: string | null;
+  warning: string | null;
+  createdAt: string;
+}
+
+export interface VitalsHistory {
+  readings: VitalsReading[];
+  predictions: SepsisPrediction[];
+}
+
+export interface PatientVitals extends VitalsHistory {
+  patient: {
+    id: string;
+    name: string;
+    dateOfBirth: string | null;
+    gender: Gender | null;
+    bloodType: BloodType | null;
+    guardianPhone: string | null;
+  };
+}
+
+// A score plus the time of the reading it is "as of" — the clinically
+// meaningful time, not when the score or alert was written.
+export interface ScoreSummary {
+  status: "scored" | "unavailable";
+  sepsisProbability: number | null;
+  riskLevel: RiskLevel | null;
+  recordedAt: string | null;
+}
+
+// `trigger` is the HIGH score that raised the alert; `current` is the
+// patient's latest score. An alert stays active until acknowledged while the
+// risk keeps moving, so show both — never the trigger alone as if it were now.
+export interface SepsisAlert {
+  id: string;
+  patientId: string;
+  patientName: string;
+  patientDateOfBirth: string | null;
+  patientGender: Gender | null;
+  status: string;
+  createdAt: string;
+  trigger: ScoreSummary & { warning: string | null };
+  current: ScoreSummary | null;
 }
 
 // Owner Portal only, below this point.

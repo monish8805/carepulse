@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Wifi, HeartPulse } from "lucide-react";
 import { healthQuery } from "@/lib/queries";
-import { useSession } from "@carepulse/portal";
-import { Avatar, Card, LoadingState } from "@carepulse/ui";
+import { bloodTypeLabel, formatDemographics, useSession } from "@carepulse/portal";
+import { Avatar, Button, Card, LoadingState } from "@carepulse/ui";
+import PatientProfileForm from "@/components/profile/PatientProfileForm";
 
 export const Route = createFileRoute("/_portal/")({
   loader: ({ context }) => {
@@ -17,6 +19,7 @@ function Home() {
   const health = useQuery(healthQuery);
   const user = session.data;
   const backendUp = health.data ?? null;
+  const [editingProfile, setEditingProfile] = useState(false);
 
   return (
     // A deliberately looser, narrower column than PageContainer's shared
@@ -29,8 +32,8 @@ function Home() {
             Your CarePulse account
           </h1>
           <p className="mt-2.5 text-base leading-relaxed text-cp-text-muted dark:text-cp-text-muted-dark">
-            Everything here is yours. You&apos;ll see your monitored health information on this page once your
-            hospital turns monitoring on.
+            Everything here is yours. Your vitals and sepsis risk are under My Vitals, and you decide which doctors
+            can see them under Data Sharing.
           </p>
         </div>
       )}
@@ -40,13 +43,41 @@ function Home() {
       ) : user ? (
         <div className="space-y-7">
           <Card>
-            <div className="flex items-center gap-3.5">
-              <Avatar name={user.name} size="lg" />
-              <div className="min-w-0">
-                <p className="truncate text-base font-semibold text-cp-text dark:text-cp-text-dark">{user.name}</p>
-                <p className="truncate text-sm text-cp-text-muted dark:text-cp-text-muted-dark">{user.email}</p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3.5">
+                <Avatar name={user.name} size="lg" />
+                <div className="min-w-0">
+                  <p className="truncate text-base font-semibold text-cp-text dark:text-cp-text-dark">{user.name}</p>
+                  <p className="truncate text-sm text-cp-text-muted dark:text-cp-text-muted-dark">{user.email}</p>
+                  <p className="mt-0.5 text-sm font-medium text-cp-text dark:text-cp-text-dark">
+                    {[
+                      formatDemographics(user.dateOfBirth, user.gender),
+                      user.bloodType && `Blood type ${bloodTypeLabel(user.bloodType)}`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                  <p className="text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
+                    {user.guardianPhone ? `Guardian: ${user.guardianPhone}` : "No guardian phone added"}
+                  </p>
+                </div>
               </div>
+              {!editingProfile && (
+                <Button variant="secondary" onClick={() => setEditingProfile(true)}>
+                  Edit
+                </Button>
+              )}
             </div>
+            {editingProfile && (
+              <div className="mt-5 border-t border-cp-border pt-5 dark:border-cp-border-dark">
+                <PatientProfileForm
+                  user={user}
+                  submitLabel="Save"
+                  onSaved={() => setEditingProfile(false)}
+                  onCancel={() => setEditingProfile(false)}
+                />
+              </div>
+            )}
           </Card>
 
           <Card>
@@ -87,8 +118,11 @@ function Home() {
               strokeWidth={2}
             />
             <p className="text-sm leading-relaxed text-cp-text-muted dark:text-cp-text-muted-dark">
-              Vitals, trends and alerts aren&apos;t switched on yet. Nothing is missing from your account — there&apos;s
-              simply nothing to show until monitoring begins.
+              Your readings, trend charts and the sepsis early-warning score are on{" "}
+              <Link to="/vitals" className="font-medium text-cp-primary hover:underline dark:text-cp-primary-dark">
+                My Vitals
+              </Link>
+              .
             </p>
           </div>
         </div>

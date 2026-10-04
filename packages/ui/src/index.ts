@@ -16,6 +16,8 @@ export { default as LoadingState } from "./LoadingState";
 export { default as Modal } from "./Modal";
 export { default as PageContainer } from "./PageContainer";
 export { default as PageHeader } from "./PageHeader";
+export { default as ResearchDisclaimer } from "./ResearchDisclaimer";
+export { default as RiskBadge } from "./RiskBadge";
 export { default as SectionHeading } from "./SectionHeading";
 export { default as Select } from "./Select";
 export { default as Stepper } from "./Stepper";

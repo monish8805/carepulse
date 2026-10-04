@@ -136,3 +136,15 @@ export function listGrantedPatients() {
 export function revokeConsentAsDoctor(grantId: string) {
   return sharedApi.revokeConsentAsDoctor(BACKEND_URL, grantId);
 }
+
+export function getPatientVitals(patientId: string) {
+  return sharedApi.getPatientVitals(BACKEND_URL, patientId);
+}
+
+export function listAlerts() {
+  return sharedApi.listAlerts(BACKEND_URL);
+}
+
+export function acknowledgeAlert(alertId: string) {
+  return sharedApi.acknowledgeAlert(BACKEND_URL, alertId);
+}

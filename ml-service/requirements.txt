@@ -1,0 +1,12 @@
+# Serving-only subset of sepsis_ml_master's requirements.txt (no notebook,
+# Streamlit or plotting deps). scikit-learn and xgboost are pinned to the
+# versions the models were saved with: logistic_regression.pkl is a pickle,
+# and loading it under a different scikit-learn is not guaranteed to work.
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.5
+numpy>=1.26
+torch>=2.2
+scikit-learn==1.8.0
+xgboost==3.2.0
+joblib>=1.3

@@ -26,3 +26,7 @@ backend/dist/
 # Playwright output
 e2e/test-results/
 e2e/playwright-report/
+
+# ML service Python environment
+ml-service/.venv/
+__pycache__/

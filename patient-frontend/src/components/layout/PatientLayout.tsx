@@ -4,9 +4,10 @@ import { useNavigate } from "@tanstack/react-router";
 import { UserRound, Settings } from "lucide-react";
 import { logout } from "@/lib/api";
 import { healthQuery } from "@/lib/queries";
-import { useSession, broadcastAuth, useAuthSync, Header, Sidebar } from "@carepulse/portal";
+import { useSession, broadcastAuth, useAuthSync, Header, Sidebar, isPatientProfileComplete } from "@carepulse/portal";
 import type { AccountMenuItem } from "@carepulse/portal";
 import { LoadingState } from "@carepulse/ui";
+import CompleteProfileGate from "@/components/profile/CompleteProfileGate";
 import { PATIENT_NAV_SECTIONS } from "./nav";
 
 // Account/personal actions — not application navigation, kept out of the
@@ -27,6 +28,11 @@ const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
 // server-side — this is presentation only. The Sidebar was added once the
 // portal got its second real route (Data Sharing) — until then a single
 // route didn't need one, same reasoning Hospital/Owner already established.
+//
+// One gate on top: a logged-in patient missing a date of birth, gender or
+// blood type sees CompleteProfileGate (header + logout, no sidebar, no page)
+// until they're saved; guardian phone is optional. That's a UX requirement,
+// not a security boundary — the backend doesn't depend on these fields.
 export default function PatientLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -75,19 +81,35 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
     return <>{children}</>;
   }
 
+  const profileComplete = isPatientProfileComplete(user);
+  const header = (
+    <Header
+      portalName="Patient"
+      backendUp={backendUp}
+      userName={user.name}
+      userEmail={user.email}
+      accountMenuItems={ACCOUNT_MENU_ITEMS}
+      onLogout={handleLogout}
+      showMenuButton={profileComplete}
+      mobileMenuOpen={mobileOpen}
+      onToggleMobileMenu={() => setMobileOpen((open) => !open)}
+    />
+  );
+
+  if (!profileComplete) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        {header}
+        <div className="min-w-0 flex-1 overflow-y-auto bg-cp-workspace dark:bg-cp-workspace-dark">
+          <CompleteProfileGate user={user} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
-      <Header
-        portalName="Patient"
-        backendUp={backendUp}
-        userName={user.name}
-        userEmail={user.email}
-        accountMenuItems={ACCOUNT_MENU_ITEMS}
-        onLogout={handleLogout}
-        showMenuButton
-        mobileMenuOpen={mobileOpen}
-        onToggleMobileMenu={() => setMobileOpen((open) => !open)}
-      />
+      {header}
       <div className="flex min-h-0 flex-1">
         <Sidebar
           sections={PATIENT_NAV_SECTIONS}

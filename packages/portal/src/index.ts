@@ -10,3 +10,6 @@ export { useSession } from "./session";
 export { broadcastAuth, useAuthSync } from "./authSync";
 export { prefetch } from "./prefetch";
 export { createQueryClient, routerDefaults } from "./router";
+export { default as VitalsHistory } from "./VitalsHistory";
+export { ageInYears, bloodTypeLabel, formatDemographics, genderLabel, isPatientProfileComplete } from "./demographics";
+export { default as ChestXrayUpload } from "./ChestXrayUpload";

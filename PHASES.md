@@ -33,12 +33,12 @@ Order matters: the authorization foundation comes before any hospital-operations
 
 - Patient record data model.
 - ~~Patient consent: granting/viewing/revoking which hospitals/staff can access their data~~ — the consent *gateway* was pulled forward into Phase 2 (see above), ahead of any patient data existing for it to actually gate.
-- Vitals data model and capture — its read endpoints must check the Phase 2 consent grants (category + doctor's live permission), not just build the data model in isolation.
+- **Vitals data model and capture ✅ Done (thin slice).** `VitalsReading` with the sepsis model's seven vitals, recorded through `POST /api/patient/vitals` (demo: `npm run replay:vitals`). Every doctor-side read checks an active `vitals.continuous` grant **and** the doctor's live permission. Not yet: staff/device capture. See ARCHITECTURE.md's "Vitals, sepsis scoring & alerts".
 
 ## Phase 4 — Monitoring & Visualization
 
 - Dashboards for vitals and patient status.
-- Alerts/notifications.
+- **Alerts ✅ Done (thin slice):** one active alert per patient on a HIGH sepsis score, listed for consenting doctors with `alerts.view`, acknowledged with `alerts.acknowledge`. Not yet: notifications (email/push), alert history.
 - First real visualization work, scoped to what Phase 3's data model actually supports.
 
 ## Phase 5 — Advanced / AI Vision (later, exploratory)
@@ -48,7 +48,7 @@ Not scheduled in detail — sequenced last on purpose, since it depends on a wor
 - Digital Twin concept.
 - 3D heart / advanced visualization.
 - Real-time streaming.
-- AI/ML-driven insights and alerting.
+- AI/ML-driven insights and alerting. **First slice ✅ Done, pulled forward:** the `sepsis_ml_master` early-warning model runs as `ml-service/` and scores every reading; it is what raises the Phase 4 alerts. Research prototype, not clinically validated.
 - RAG-based features.
 
 ## Working rule

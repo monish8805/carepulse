@@ -15,8 +15,10 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PortalIndexRouteImport } from './routes/_portal/index'
 import { Route as PortalAccessRouteImport } from './routes/_portal/access'
+import { Route as PortalAlertsRouteImport } from './routes/_portal/alerts'
 import { Route as PortalPatientsRouteImport } from './routes/_portal/patients'
 import { Route as PortalProfileRouteImport } from './routes/_portal/profile'
+import { Route as PortalPatientsPatientIdRouteImport } from './routes/_portal/patients_.$patientId'
 
 const PortalRoute = PortalRouteImport.update({
   id: '/_portal',
@@ -47,6 +49,11 @@ const PortalAccessRoute = PortalAccessRouteImport.update({
   path: '/access',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalAlertsRoute = PortalAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => PortalRoute,
+} as any)
 const PortalPatientsRoute = PortalPatientsRouteImport.update({
   id: '/patients',
   path: '/patients',
@@ -57,6 +64,11 @@ const PortalProfileRoute = PortalProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalPatientsPatientIdRoute = PortalPatientsPatientIdRouteImport.update({
+  id: '/patients_/$patientId',
+  path: '/patients/$patientId',
+  getParentRoute: () => PortalRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof PortalIndexRoute
@@ -64,17 +76,21 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/access': typeof PortalAccessRoute
+  '/alerts': typeof PortalAlertsRoute
   '/patients': typeof PortalPatientsRoute
   '/profile': typeof PortalProfileRoute
+  '/patients/$patientId': typeof PortalPatientsPatientIdRoute
 }
 export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/access': typeof PortalAccessRoute
+  '/alerts': typeof PortalAlertsRoute
   '/patients': typeof PortalPatientsRoute
   '/profile': typeof PortalProfileRoute
   '/': typeof PortalIndexRoute
+  '/patients/$patientId': typeof PortalPatientsPatientIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -83,9 +99,11 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/_portal/access': typeof PortalAccessRoute
+  '/_portal/alerts': typeof PortalAlertsRoute
   '/_portal/patients': typeof PortalPatientsRoute
   '/_portal/profile': typeof PortalProfileRoute
   '/_portal/': typeof PortalIndexRoute
+  '/_portal/patients_/$patientId': typeof PortalPatientsPatientIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -95,17 +113,21 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/access'
+    | '/alerts'
     | '/patients'
     | '/profile'
+    | '/patients/$patientId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/forgot-password'
     | '/login'
     | '/register'
     | '/access'
+    | '/alerts'
     | '/patients'
     | '/profile'
     | '/'
+    | '/patients/$patientId'
   id:
     | '__root__'
     | '/_portal'
@@ -113,9 +135,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/_portal/access'
+    | '/_portal/alerts'
     | '/_portal/patients'
     | '/_portal/profile'
     | '/_portal/'
+    | '/_portal/patients_/$patientId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -169,6 +193,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalAccessRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/_portal/alerts': {
+      id: '/_portal/alerts'
+      path: '/alerts'
+      fullPath: '/alerts'
+      preLoaderRoute: typeof PortalAlertsRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/_portal/patients': {
       id: '/_portal/patients'
       path: '/patients'
@@ -183,21 +214,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalProfileRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/_portal/patients_/$patientId': {
+      id: '/_portal/patients_/$patientId'
+      path: '/patients/$patientId'
+      fullPath: '/patients/$patientId'
+      preLoaderRoute: typeof PortalPatientsPatientIdRouteImport
+      parentRoute: typeof PortalRoute
+    }
   }
 }
 
 interface PortalRouteChildren {
   PortalAccessRoute: typeof PortalAccessRoute
+  PortalAlertsRoute: typeof PortalAlertsRoute
   PortalPatientsRoute: typeof PortalPatientsRoute
   PortalProfileRoute: typeof PortalProfileRoute
   PortalIndexRoute: typeof PortalIndexRoute
+  PortalPatientsPatientIdRoute: typeof PortalPatientsPatientIdRoute
 }
 
 const PortalRouteChildren: PortalRouteChildren = {
   PortalAccessRoute: PortalAccessRoute,
+  PortalAlertsRoute: PortalAlertsRoute,
   PortalPatientsRoute: PortalPatientsRoute,
   PortalProfileRoute: PortalProfileRoute,
   PortalIndexRoute: PortalIndexRoute,
+  PortalPatientsPatientIdRoute: PortalPatientsPatientIdRoute,
 }
 
 const PortalRouteWithChildren =

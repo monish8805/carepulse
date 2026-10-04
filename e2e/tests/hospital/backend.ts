@@ -16,6 +16,9 @@ export interface HospitalState {
   role: "admin" | "staff";
   canManageStaff: boolean;
   canViewPatients: boolean;
+  canViewVitals: boolean;
+  canViewAlerts: boolean;
+  canAcknowledgeAlerts: boolean;
   staff: {
     id: string;
     userId: string;
@@ -26,8 +29,38 @@ export interface HospitalState {
     status: string;
     canManageStaff: boolean;
   }[];
-  patients: { id: string; patientId: string; patientName: string; dataCategories: string[]; createdAt: string }[];
+  patients: {
+    id: string;
+    patientId: string;
+    patientName: string;
+    patientDateOfBirth: string | null;
+    patientGender: string | null;
+    dataCategories: string[];
+    createdAt: string;
+  }[];
+  alerts: {
+    id: string;
+    patientId: string;
+    patientName: string;
+    patientDateOfBirth: string | null;
+    patientGender: string | null;
+    status: string;
+    createdAt: string;
+    trigger: Score & { warning: string | null };
+    current: Score | null;
+  }[];
+  // GET /patients/:id/vitals for any patient whose grant includes vitals.continuous.
+  vitals: { readings: Record<string, unknown>[]; predictions: Record<string, unknown>[] };
 }
+
+type Score = {
+  status: "scored" | "unavailable";
+  sepsisProbability: number | null;
+  riskLevel: "LOW" | "ELEVATED" | "HIGH" | null;
+  recordedAt: string | null;
+};
+
+const READING = { O2Sat: 95, Temp: 39.1, SBP: 98, MAP: 64, DBP: 50, Resp: 26 };
 
 export function defaultState(): HospitalState {
   return {
@@ -44,7 +77,44 @@ export function defaultState(): HospitalState {
       { id: "m1", userId: "u2", userName: "Nina Nurse", userEmail: "nina@x.com", accessRoleId: "r1", accessRoleName: "Nurse", status: "active", canManageStaff: false },
       { id: "m2", userId: "u3", userName: "Omar Ortho", userEmail: "omar@x.com", accessRoleId: "r1", accessRoleName: "Nurse", status: "active", canManageStaff: false },
     ],
-    patients: [{ id: "g1", patientId: "p1", patientName: "Pat One", dataCategories: ["vitals.continuous"], createdAt: "2026-09-01T00:00:00Z" }],
+    canViewVitals: true,
+    canViewAlerts: true,
+    canAcknowledgeAlerts: true,
+    patients: [
+      {
+        id: "g1",
+        patientId: "p1",
+        patientName: "Pat One",
+        patientDateOfBirth: "1981-04-12T00:00:00.000Z",
+        patientGender: "female",
+        dataCategories: ["vitals.continuous"],
+        createdAt: "2026-09-01T00:00:00Z",
+      },
+    ],
+    alerts: [
+      // Raised by an earlier HIGH; the patient has since dropped to ELEVATED.
+      {
+        id: "a1",
+        patientId: "p1",
+        patientName: "Pat One",
+        patientDateOfBirth: "1981-04-12T00:00:00.000Z",
+        patientGender: "female",
+        status: "active",
+        createdAt: "2026-10-03T08:00:05Z",
+        trigger: { status: "scored", sepsisProbability: 0.071, riskLevel: "HIGH", recordedAt: "2026-10-03T05:00:00Z", warning: null },
+        current: { status: "scored", sepsisProbability: 0.041, riskLevel: "ELEVATED", recordedAt: "2026-10-03T08:00:00Z" },
+      },
+    ],
+    vitals: {
+      readings: [
+        { id: "v1", recordedAt: "2026-10-03T07:00:00Z", HR: 104, ...READING },
+        { id: "v2", recordedAt: "2026-10-03T08:00:00Z", HR: 118, ...READING },
+      ],
+      predictions: [
+        { id: "s1", readingId: "v1", status: "scored", sepsisProbability: 0.041, riskLevel: "ELEVATED", modelKey: "ssl_lstm", modelVersion: "1.0", warning: null, createdAt: "2026-10-03T07:00:01Z" },
+        { id: "s2", readingId: "v2", status: "scored", sepsisProbability: 0.071, riskLevel: "HIGH", modelKey: "ssl_lstm", modelVersion: "1.0", warning: null, createdAt: "2026-10-03T08:00:01Z" },
+      ],
+    },
   };
 }
 
@@ -63,7 +133,16 @@ export function hospitalBackend(overrides: Partial<HospitalState> = {}, delayMs 
     specialization: null,
     hospital:
       state.membership === "active" && state.hospitalSelected
-        ? { id: "h1", name: "City Hospital", role: state.role, canManageStaff: state.canManageStaff, canViewPatients: state.canViewPatients }
+        ? {
+            id: "h1",
+            name: "City Hospital",
+            role: state.role,
+            canManageStaff: state.canManageStaff,
+            canViewPatients: state.canViewPatients,
+            canViewVitals: state.canViewVitals,
+            canViewAlerts: state.canViewAlerts,
+            canAcknowledgeAlerts: state.canAcknowledgeAlerts,
+          }
         : null,
   });
   const authed = (handler: () => ReturnType<typeof json>) => (request: { headers(): Record<string, string> }) =>
@@ -131,6 +210,36 @@ export function hospitalBackend(overrides: Partial<HospitalState> = {}, delayMs 
         authed(() => {
           state.patients = state.patients.filter((p) => p.id !== id);
           return json({ message: "ok" });
+        })(request),
+      // Like the real backend: the permission (requirePermission) AND an active
+      // vitals.continuous grant — no grant is a 404, never a hint the patient exists.
+      "GET /api/hospital/patients/:id/vitals": (request, { id }) =>
+        authed(() => {
+          if (!state.canViewVitals) return json({ message: "Missing required permission: vitals.view" }, 403);
+          const patient = state.patients.find((p) => p.patientId === id && p.dataCategories.includes("vitals.continuous"));
+          if (!patient) return json({ message: "Patient not found." }, 404);
+          return json({
+            patient: {
+              id,
+              name: patient.patientName,
+              dateOfBirth: patient.patientDateOfBirth,
+              gender: patient.patientGender,
+              bloodType: "O+",
+              guardianPhone: "+91 98765 43210",
+            },
+            ...state.vitals,
+          });
+        })(request),
+      "GET /api/hospital/alerts": authed(() =>
+        state.canViewAlerts
+          ? json({ alerts: state.alerts })
+          : json({ message: "Missing required permission: alerts.view" }, 403)
+      ),
+      "POST /api/hospital/alerts/:id/acknowledge": (request, { id }) =>
+        authed(() => {
+          if (!state.canAcknowledgeAlerts) return json({ message: "Missing required permission: alerts.acknowledge" }, 403);
+          state.alerts = state.alerts.filter((a) => a.id !== id);
+          return json({ message: "Alert acknowledged.", alert: { id, status: "acknowledged" } });
         })(request),
     },
     delayMs

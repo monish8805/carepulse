@@ -1,0 +1,10 @@
+{
+ "platt_a": 0.9069720038328289,
+ "platt_b": -2.1105331814134,
+ "high_raw_threshold": 0.3153287751922154,
+ "elevated_raw_threshold": 0.1531965285539627,
+ "high_calibrated": 0.05658675962931207,
+ "elevated_calibrated": 0.025056997475648813,
+ "base_rate": 0.01807452558147566,
+ "note": "Thresholds picked on validation patients. Experimental, not clinically validated."
+}

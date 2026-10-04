@@ -9,6 +9,7 @@ import hospitalRoutes from "./routes/hospital.routes";
 import ownerRoutes from "./routes/owner.routes";
 import patientRoutes from "./routes/patient.routes";
 import { HttpError } from "./utils/httpError";
+import { isDuplicateKeyError } from "./utils/mongoError";
 
 const app = express();
 
@@ -22,20 +23,6 @@ app.use("/api/hospital", hospitalRoutes);
 app.use("/api/owner", ownerRoutes);
 app.use("/api/patient", patientRoutes);
 
-// MongoDB's duplicate-key error. Every unique index in this app guards a
-// real business rule (one membership per (user, hospital), one live
-// membership per user, one AccessRole name per hospital, one consent per
-// (patient, doctor), unique email), and every one of those has an
-// application-level pre-check that produces a clean 409 — but a pre-check is
-// read-then-write, so a genuine race still lands here. Without this branch it
-// fell through to a generic 500, which meant the unique indexes the model
-// comments call "the backstop" surfaced as an unexplained server error.
-// Deliberately generic: err.keyValue holds the conflicting values (emails
-// included), so it is never echoed back to the client or logged.
-function isDuplicateKeyError(err: unknown): boolean {
-  return typeof err === "object" && err !== null && (err as { code?: unknown }).code === 11000;
-}
-
 // Central error handler: validators and domain code throw HttpError, this is
 // the only place that turns errors into HTTP responses.
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
@@ -44,6 +31,16 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     return;
   }
 
+  // MongoDB's duplicate-key error. Every unique index in this app guards a
+  // real business rule (one membership per (user, hospital), one live
+  // membership per user, one AccessRole name per hospital, one consent per
+  // (patient, doctor), unique email), and every one of those has an
+  // application-level pre-check that produces a clean 409 — but a pre-check is
+  // read-then-write, so a genuine race still lands here. Without this branch it
+  // fell through to a generic 500, which meant the unique indexes the model
+  // comments call "the backstop" surfaced as an unexplained server error.
+  // Deliberately generic: err.keyValue holds the conflicting values (emails
+  // included), so it is never echoed back to the client or logged.
   if (isDuplicateKeyError(err)) {
     res.status(409).json({ message: "That already exists. Refresh and try again." });
     return;

@@ -5,6 +5,15 @@ import { Schema, model, InferSchemaType } from "mongoose";
 export const ROLES = ["patient", "hospital", "owner"] as const;
 export type Role = (typeof ROLES)[number];
 
+export const GENDERS = ["male", "female", "other"] as const;
+export type Gender = (typeof GENDERS)[number];
+
+// "unknown" is a real answer, not a missing one: the Patient Portal requires
+// this field, and someone who doesn't know their blood type must not be pushed
+// into guessing one a doctor would then see.
+export const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "unknown"] as const;
+export type BloodType = (typeof BLOOD_TYPES)[number];
+
 // One entry per active session. Portal-scoped (see auth.controller.ts's
 // per-portal cookie names) — a patient session and a hospital session for the
 // same account are separate entries here, capped independently.
@@ -54,6 +63,17 @@ const userSchema = new Schema(
     // patient looking up a doctor before granting data access
     // (domain/patientConsent.service.ts::lookupDoctorByEmail).
     specialization: { type: String, trim: true },
+    // Patient demographics, shown to the patient and to doctors they share
+    // vitals with. Optional at the schema level (same precedent as `phone`):
+    // hospital and owner accounts never have them. The Patient Portal asks
+    // for both on first login (PatientLayout's profile gate). Date of birth,
+    // not an age, so it never goes stale; stored as UTC midnight of that day.
+    dateOfBirth: { type: Date },
+    gender: { type: String, enum: GENDERS },
+    // Required by the Patient Portal alongside DOB and gender (may be "unknown").
+    bloodType: { type: String, enum: BLOOD_TYPES },
+    // Optional — someone to contact on the patient's behalf.
+    guardianPhone: { type: String, trim: true },
     passwordHash: { type: String, required: true },
     roles: { type: [String], enum: ROLES, default: [] },
     isVerified: { type: Boolean, default: false },

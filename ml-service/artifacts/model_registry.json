@@ -1,0 +1,66 @@
+{
+ "primary": "ssl_lstm",
+ "models": [
+  {
+   "key": "logistic_regression",
+   "name": "Logistic Regression",
+   "kind": "tabular_lr",
+   "file": "models/logistic_regression.pkl",
+   "platt_a": 0.9653722359550115,
+   "platt_b": -4.001195719363743,
+   "high_raw_threshold": 0.7100029845637357,
+   "elevated_raw_threshold": 0.625797969110624
+  },
+  {
+   "key": "xgboost",
+   "name": "XGBoost",
+   "kind": "tabular_xgb",
+   "file": "models/xgboost.json",
+   "platt_a": 1.021331516999349,
+   "platt_b": -3.839669449342799,
+   "high_raw_threshold": 0.7655226020368471,
+   "elevated_raw_threshold": 0.55830994030604
+  },
+  {
+   "key": "lstm",
+   "name": "LSTM",
+   "kind": "sequence_lstm",
+   "file": "models/lstm.pt",
+   "platt_a": 0.9364268287148994,
+   "platt_b": -2.0560595974965574,
+   "high_raw_threshold": 0.30120523960206447,
+   "elevated_raw_threshold": 0.16386888197752145
+  },
+  {
+   "key": "gru",
+   "name": "GRU",
+   "kind": "sequence_gru",
+   "file": "models/gru.pt",
+   "platt_a": 0.8331033557254526,
+   "platt_b": -2.319808887316963,
+   "high_raw_threshold": 0.3835295682337321,
+   "elevated_raw_threshold": 0.22071625148562285
+  },
+  {
+   "key": "ssl_lstm",
+   "name": "Self-Supervised LSTM + Classifier",
+   "kind": "ssl_encoder_head",
+   "file": "models/final_sepsis_model.pt",
+   "platt_a": 0.9069720038328289,
+   "platt_b": -2.1105331814134,
+   "high_raw_threshold": 0.3153287751922154,
+   "elevated_raw_threshold": 0.1531965285539627
+  },
+  {
+   "key": "scratch_lstm",
+   "name": "Same encoder from scratch (control)",
+   "kind": "ssl_encoder_head",
+   "file": "models/scratch_control.pt",
+   "platt_a": 0.7879711323697292,
+   "platt_b": -2.252685847258084,
+   "high_raw_threshold": 0.31723987171710494,
+   "elevated_raw_threshold": 0.1523086284536582
+  }
+ ],
+ "note": "Platt parameters and thresholds were fitted / chosen on validation patients only."
+}

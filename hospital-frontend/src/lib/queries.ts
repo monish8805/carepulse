@@ -7,6 +7,8 @@ import {
   listPendingAccessRequests,
   listStaff,
   listGrantedPatients,
+  listAlerts,
+  getPatientVitals,
 } from "@/lib/api";
 
 export const healthQuery = queryOptions({ queryKey: ["health"], queryFn: getBackendHealth });
@@ -21,6 +23,12 @@ export const pendingRequestsQuery = queryOptions({
 export const staffQuery = queryOptions({ queryKey: ["staff"], queryFn: listStaff });
 
 export const grantedPatientsQuery = queryOptions({ queryKey: ["grantedPatients"], queryFn: listGrantedPatients });
+
+export const alertsQuery = queryOptions({ queryKey: ["alerts"], queryFn: listAlerts });
+
+export function patientVitalsQuery(patientId: string) {
+  return queryOptions({ queryKey: ["patientVitals", patientId], queryFn: () => getPatientVitals(patientId) });
+}
 
 // What HospitalLayout's access gate last resolved (it stays mounted around every
 // portal page), so a loader only prefetches lists this user can actually load.

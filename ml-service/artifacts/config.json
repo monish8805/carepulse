@@ -1,0 +1,48 @@
+{
+ "version": "1.0",
+ "sequence_length": 6,
+ "vitals": [
+  "HR",
+  "O2Sat",
+  "Temp",
+  "SBP",
+  "MAP",
+  "DBP",
+  "Resp"
+ ],
+ "valid_ranges": {
+  "HR": [
+   20,
+   300
+  ],
+  "O2Sat": [
+   50,
+   100
+  ],
+  "Temp": [
+   30,
+   43
+  ],
+  "SBP": [
+   40,
+   280
+  ],
+  "MAP": [
+   20,
+   220
+  ],
+  "DBP": [
+   10,
+   200
+  ],
+  "Resp": [
+   3,
+   70
+  ]
+ },
+ "model": "Self-Supervised LSTM autoencoder encoder (1 layer, hidden 64, latent 32) + MLP head",
+ "input_channels": 15,
+ "seed": 42,
+ "max_stay_hours": 336,
+ "trained_on": "PhysioNet/CinC 2019 training sets A+B; 28234 train / 6051 val / 6051 test patients"
+}
