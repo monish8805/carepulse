@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { FakeBackend, json } from "../../fakeBackend";
 import { PATIENT } from "./patient";
 
-const READING = { O2Sat: 96, Temp: 38.4, SBP: 112, MAP: 76, DBP: 58, Resp: 22 };
+const READING = { O2Sat: 96, Temp: 38.4, Resp: 22 };
 
 function patientBackend(predictions: Record<string, unknown>[]) {
   return new FakeBackend({

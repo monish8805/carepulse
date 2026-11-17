@@ -60,7 +60,7 @@ type Score = {
   recordedAt: string | null;
 };
 
-const READING = { O2Sat: 95, Temp: 39.1, SBP: 98, MAP: 64, DBP: 50, Resp: 26 };
+const READING = { O2Sat: 95, Temp: 39.1, Resp: 26 };
 
 export function defaultState(): HospitalState {
   return {
@@ -235,6 +235,14 @@ export function hospitalBackend(overrides: Partial<HospitalState> = {}, delayMs 
             ...state.vitals,
           });
         })(request),
+      // Same gate as /vitals: permission AND an active vitals.continuous grant (404 otherwise).
+      "GET /api/hospital/patients/:id/sepsis-watch": (request, { id }) =>
+        authed(() => {
+          if (!state.canViewVitals) return json({ message: "Missing required permission: vitals.view" }, 403);
+          const patient = state.patients.find((p) => p.patientId === id && p.dataCategories.includes("vitals.continuous"));
+          if (!patient) return json({ message: "Patient not found." }, 404);
+          return json(sepsisWatchFor(id, patient.patientName));
+        })(request),
       "GET /api/hospital/alerts": authed(() =>
         state.canViewAlerts
           ? json({ alerts: state.alerts })
@@ -253,3 +261,41 @@ export function hospitalBackend(overrides: Partial<HospitalState> = {}, delayMs 
 }
 
 export const GREETING = /Good (morning|afternoon|evening), Ada/;
+
+// A 12-hour simulated stay: HR measured every hour except 3-4 (carried forward),
+// SSL-LSTM alerts at hours 6-8, XGBoost at 9 only; label starts at 7, onset 13.
+function sepsisWatchFor(id: string, name: string) {
+  const risk = (alerts: number[], base: number) =>
+    Array.from({ length: 12 }, (_, hour) => ({
+      hour,
+      probability: alerts.includes(hour) ? 0.08 : base,
+      riskLevel: alerts.includes(hour) ? "HIGH" : "LOW",
+      alert: alerts.includes(hour),
+    }));
+  return {
+    patient: { id, name, age: 67, gender: "male" },
+    startsAt: "2026-10-03T00:00:00Z",
+    hours: Array.from({ length: 12 }, (_, hour) => ({
+      hour,
+      HR: hour === 3 || hour === 4 ? null : 80 + hour,
+      O2Sat: 96,
+      Temp: hour < 2 ? null : 37.5,
+      Resp: 18,
+    })),
+    normalRanges: { HR: { min: 60, max: 100 }, O2Sat: { min: 95, max: 100 }, Temp: { min: 36.1, max: 37.8 }, Resp: { min: 12, max: 20 } },
+    models: [
+      { key: "xgboost", name: "XGBoost" },
+      { key: "ssl_lstm", name: "Self-Supervised LSTM + Classifier" },
+    ],
+    primary: "ssl_lstm",
+    risk: { xgboost: risk([9], 0.02), ssl_lstm: risk([6, 7, 8], 0.02) },
+    alertHours: { xgboost: [9], ssl_lstm: [6, 7, 8] },
+    alertLevels: { xgboost: { high: 0.043, elevated: 0.026 }, ssl_lstm: { high: 0.051, elevated: 0.03 } },
+    comparison: [
+      { Model: "XGBoost", AUROC: "0.7056", Precision: "0.0609", Recall: "0.2225", F1: "0.0956", "AUROC 95% CI": "0.685-0.725" },
+      { Model: "Self-Supervised LSTM + Classifier", AUROC: "0.7012", Precision: "0.0700", Recall: "0.1660", F1: "0.0985", "AUROC 95% CI": "0.681-0.720" },
+    ],
+    warnings: [{ hour: 0, warnings: ["Only 1 of 6 hours of history so far; the score is less reliable."] }],
+    simulation: { sampleId: "p1", labelStartsHour: 7, onsetHour: 13 },
+  };
+}

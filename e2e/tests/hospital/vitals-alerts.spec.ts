@@ -149,10 +149,10 @@ test("the doctor's patient page shows age and gender, the ML summary, trends and
   for (const tier of ["LOW", "ELEVATED", "HIGH"]) {
     await expect(chart.locator("text", { hasText: new RegExp(`^${tier}$`) })).toBeVisible();
   }
-  await page.getByRole("tab", { name: "Blood pressure" }).click();
-  await expect(chart).toHaveAttribute("aria-label", "Blood pressure over time, 2 readings");
-  await expect(page.getByText("Systolic (SBP, mmHg)")).toBeVisible();
-  await expect(chart.locator(".recharts-line")).toHaveCount(3);
+  await expect(page.getByRole("tab", { name: "Blood pressure" })).toHaveCount(0);
+  await page.getByRole("tab", { name: "Respiratory rate" }).click();
+  await expect(chart).toHaveAttribute("aria-label", "Respiratory rate over time, 2 readings");
+  await expect(chart.locator(".recharts-line")).toHaveCount(1);
 
   await expect(page.getByText("Upload Chest X-ray")).toBeVisible();
 });
