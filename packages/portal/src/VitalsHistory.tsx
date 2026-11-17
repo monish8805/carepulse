@@ -26,9 +26,6 @@ const VITAL_LABELS: Record<Vital, string> = {
   HR: "HR (bpm)",
   O2Sat: "SpO₂ (%)",
   Temp: "Temp (°C)",
-  SBP: "SBP",
-  MAP: "MAP",
-  DBP: "DBP",
   Resp: "Resp (/min)",
 };
 

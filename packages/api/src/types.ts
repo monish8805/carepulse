@@ -170,7 +170,7 @@ export interface GrantedPatientSummary {
 // Vitals and the sepsis early-warning score (backend's domain/vitals.service.ts,
 // domain/inference.service.ts, domain/alert.service.ts). Mirrors
 // backend/config/vitals.ts — the model's own field names.
-export const VITALS = ["HR", "O2Sat", "Temp", "SBP", "MAP", "DBP", "Resp"] as const;
+export const VITALS = ["HR", "O2Sat", "Temp", "Resp"] as const;
 export type Vital = (typeof VITALS)[number];
 
 export type RiskLevel = "LOW" | "ELEVATED" | "HIGH";
@@ -208,6 +208,39 @@ export interface PatientVitals extends VitalsHistory {
     bloodType: BloodType | null;
     guardianPhone: string | null;
   };
+}
+
+// Sepsis Watch (backend's domain/sepsisWatch.service.ts): one patient's stay
+// as hourly vitals plus every model's stored risk per hour. `hours` has one
+// entry per hour of the stay, null where nothing was measured.
+export interface SepsisWatchHour extends Record<Vital, number | null> {
+  hour: number;
+}
+
+export interface SepsisWatchRiskPoint {
+  hour: number;
+  probability: number;
+  riskLevel: RiskLevel;
+  alert: boolean;
+}
+
+export interface SepsisWatch {
+  patient: { id: string; name: string; age: number | null; gender: Gender | null };
+  startsAt: string | null;
+  hours: SepsisWatchHour[];
+  normalRanges: Record<Vital, { min: number; max: number }>;
+  models: { key: string; name: string }[];
+  primary: string | null;
+  risk: Record<string, SepsisWatchRiskPoint[]>;
+  alertHours: Record<string, number[]>;
+  // Probability at each model's alert (HIGH) and elevated threshold; null when
+  // the model service couldn't be asked.
+  alertLevels: Record<string, { high: number; elevated: number }> | null;
+  // The model service's held-out test metrics, one row per model; null when it couldn't be asked.
+  comparison: Record<string, string>[] | null;
+  warnings: { hour: number; warnings: string[] }[];
+  // Present only for a replayed retrospective stay, never for a live patient.
+  simulation: { sampleId: string; labelStartsHour: number | null; onsetHour: number | null } | null;
 }
 
 // A score plus the time of the reading it is "as of" — the clinically

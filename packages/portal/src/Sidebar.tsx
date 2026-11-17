@@ -72,7 +72,7 @@ export default function Sidebar({ sections, mobileOpen, onCloseMobile, storageKe
       )}
       <nav
         aria-label="Main navigation"
-        className={`fixed inset-y-0 top-14 z-20 flex w-60 flex-col gap-1 border-r border-cp-border bg-cp-sidebar p-2 transition-transform duration-200 ease-in-out md:static md:top-0 md:translate-x-0 md:transition-[width] md:duration-150 dark:border-cp-border-dark dark:bg-cp-sidebar-dark ${
+        className={`fixed inset-y-0 top-14 z-20 flex w-60 flex-col gap-1 border-r border-cp-border bg-cp-sidebar p-2 transition-transform duration-200 ease-in-out overflow-y-auto md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:shrink-0 md:self-start md:translate-x-0 md:transition-[width] md:duration-150 dark:border-cp-border-dark dark:bg-cp-sidebar-dark ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } ${collapsed ? "md:w-14" : "md:w-56"}`}
       >

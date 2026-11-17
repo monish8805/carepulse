@@ -17,6 +17,7 @@ import type {
   VitalsHistory,
   PatientVitals,
   SepsisAlert,
+  SepsisWatch,
 } from "./types";
 
 // Shared client for the backend API (@carepulse/api). Every frontend passes
@@ -428,6 +429,10 @@ export function revokeConsentAsDoctor(baseUrl: string, grantId: string): Promise
 // vitals.continuous grant from the patient; the backend checks both.
 export function getPatientVitals(baseUrl: string, patientId: string): Promise<PatientVitals> {
   return apiFetch(baseUrl, `/api/hospital/patients/${patientId}/vitals`);
+}
+
+export function getSepsisWatch(baseUrl: string, patientId: string): Promise<SepsisWatch> {
+  return apiFetch(baseUrl, `/api/hospital/patients/${patientId}/sepsis-watch`);
 }
 
 export async function listAlerts(baseUrl: string): Promise<SepsisAlert[]> {

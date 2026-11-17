@@ -1,6 +1,7 @@
 import { Activity } from "lucide-react";
 import { ThemeToggle } from "@carepulse/ui";
 import AccountMenu, { type AccountMenuItem } from "./AccountMenu";
+import FullscreenToggle from "./FullscreenToggle";
 
 interface HeaderProps {
   // The portal name shown after the "CarePulse" wordmark, e.g. "Hospital".
@@ -100,6 +101,7 @@ export default function Header({
             {backendUp === null ? "Checking..." : backendUp ? "Connected" : "Not connected"}
           </span>
         )}
+        <FullscreenToggle />
         <ThemeToggle />
         <AccountMenu userName={userName} userEmail={userEmail} items={accountMenuItems} onLogout={onLogout} />
       </div>

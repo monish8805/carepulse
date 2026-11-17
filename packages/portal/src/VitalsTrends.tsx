@@ -20,9 +20,6 @@ const CHART_VARS = [
   "[--chart-grid:var(--color-cp-border)] dark:[--chart-grid:var(--color-cp-border-dark)]",
   "[--chart-axis:var(--color-cp-text-muted)] dark:[--chart-axis:var(--color-cp-text-muted-dark)]",
   "[--chart-surface:var(--color-cp-card)] dark:[--chart-surface:var(--color-cp-card-dark)]",
-  "[--series-sbp:#2a78d6] dark:[--series-sbp:#3987e5]",
-  "[--series-map:#eb6834] dark:[--series-map:#d95926]",
-  "[--series-dbp:#1baf7a] dark:[--series-dbp:#199e70]",
   "[--band-low:var(--color-cp-success-bg)] dark:[--band-low:var(--color-cp-success-bg-dark)]",
   "[--band-elevated:var(--color-cp-pending-bg)] dark:[--band-elevated:var(--color-cp-pending-bg-dark)]",
   // Error has no light cp token (see DESIGN.md) — the same red-50 the Alert primitive uses.
@@ -31,8 +28,8 @@ const CHART_VARS = [
 
 const RISK_LEVELS: RiskLevel[] = ["LOW", "ELEVATED", "HIGH"];
 
-type SeriesKey = "HR" | "O2Sat" | "Temp" | "Resp" | "SBP" | "MAP" | "DBP";
-type TabKey = "risk" | "HR" | "O2Sat" | "Temp" | "Resp" | "BP";
+type SeriesKey = "HR" | "O2Sat" | "Temp" | "Resp";
+type TabKey = "risk" | "HR" | "O2Sat" | "Temp" | "Resp";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "risk", label: "ML risk" },
@@ -40,7 +37,6 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "O2Sat", label: "SpO₂" },
   { key: "Temp", label: "Temperature" },
   { key: "Resp", label: "Respiratory rate" },
-  { key: "BP", label: "Blood pressure" },
 ];
 
 const SERIES: Record<SeriesKey, { label: string; unit: string; color: string }> = {
@@ -48,9 +44,6 @@ const SERIES: Record<SeriesKey, { label: string; unit: string; color: string }> 
   O2Sat: { label: "SpO₂", unit: "%", color: "var(--chart-line)" },
   Temp: { label: "Temperature", unit: "°C", color: "var(--chart-line)" },
   Resp: { label: "Respiratory rate", unit: "/min", color: "var(--chart-line)" },
-  SBP: { label: "Systolic", unit: "mmHg", color: "var(--series-sbp)" },
-  MAP: { label: "Mean arterial", unit: "mmHg", color: "var(--series-map)" },
-  DBP: { label: "Diastolic", unit: "mmHg", color: "var(--series-dbp)" },
 };
 
 const TAB_SERIES: Record<Exclude<TabKey, "risk">, SeriesKey[]> = {
@@ -58,7 +51,6 @@ const TAB_SERIES: Record<Exclude<TabKey, "risk">, SeriesKey[]> = {
   O2Sat: ["O2Sat"],
   Temp: ["Temp"],
   Resp: ["Resp"],
-  BP: ["SBP", "MAP", "DBP"],
 };
 
 interface Row extends Record<SeriesKey, number | null> {
@@ -84,9 +76,6 @@ function toRows(history: VitalsHistory): Row[] {
       O2Sat: reading.O2Sat,
       Temp: reading.Temp,
       Resp: reading.Resp,
-      SBP: reading.SBP,
-      MAP: reading.MAP,
-      DBP: reading.DBP,
       riskTier: scored ? RISK_LEVELS.indexOf(scored.riskLevel!) : null,
       riskLevel: scored?.riskLevel ?? null,
       probability: scored?.sepsisProbability ?? null,
@@ -302,15 +291,6 @@ export default function VitalsTrends({ history }: { history: VitalsHistory }) {
         <p className="mb-2 text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
           Sepsis risk tier at each reading, LOW → ELEVATED → HIGH. Gaps are readings the model couldn&apos;t score.
         </p>
-      ) : seriesKeys.length > 1 ? (
-        <div className="mb-2 flex flex-wrap gap-4 text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
-          {seriesKeys.map((key) => (
-            <span key={key} className="flex items-center gap-2">
-              <span aria-hidden="true" className="h-0.5 w-4 rounded-full" style={{ background: SERIES[key].color }} />
-              {SERIES[key].label} ({key}, {SERIES[key].unit})
-            </span>
-          ))}
-        </div>
       ) : (
         <p className="mb-2 text-sm text-cp-text-muted dark:text-cp-text-muted-dark">
           {SERIES[seriesKeys[0]].label} ({SERIES[seriesKeys[0]].unit}) at each reading.
