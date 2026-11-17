@@ -18,6 +18,7 @@ import { Route as PortalAccessRouteImport } from './routes/_portal/access'
 import { Route as PortalAlertsRouteImport } from './routes/_portal/alerts'
 import { Route as PortalPatientsRouteImport } from './routes/_portal/patients'
 import { Route as PortalProfileRouteImport } from './routes/_portal/profile'
+import { Route as PortalSepsisWatchRouteImport } from './routes/_portal/sepsis-watch'
 import { Route as PortalPatientsPatientIdRouteImport } from './routes/_portal/patients_.$patientId'
 
 const PortalRoute = PortalRouteImport.update({
@@ -64,6 +65,11 @@ const PortalProfileRoute = PortalProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalSepsisWatchRoute = PortalSepsisWatchRouteImport.update({
+  id: '/sepsis-watch',
+  path: '/sepsis-watch',
+  getParentRoute: () => PortalRoute,
+} as any)
 const PortalPatientsPatientIdRoute = PortalPatientsPatientIdRouteImport.update({
   id: '/patients_/$patientId',
   path: '/patients/$patientId',
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/alerts': typeof PortalAlertsRoute
   '/patients': typeof PortalPatientsRoute
   '/profile': typeof PortalProfileRoute
+  '/sepsis-watch': typeof PortalSepsisWatchRoute
   '/patients/$patientId': typeof PortalPatientsPatientIdRoute
 }
 export interface FileRoutesByTo {
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/alerts': typeof PortalAlertsRoute
   '/patients': typeof PortalPatientsRoute
   '/profile': typeof PortalProfileRoute
+  '/sepsis-watch': typeof PortalSepsisWatchRoute
   '/': typeof PortalIndexRoute
   '/patients/$patientId': typeof PortalPatientsPatientIdRoute
 }
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/_portal/alerts': typeof PortalAlertsRoute
   '/_portal/patients': typeof PortalPatientsRoute
   '/_portal/profile': typeof PortalProfileRoute
+  '/_portal/sepsis-watch': typeof PortalSepsisWatchRoute
   '/_portal/': typeof PortalIndexRoute
   '/_portal/patients_/$patientId': typeof PortalPatientsPatientIdRoute
 }
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/patients'
     | '/profile'
+    | '/sepsis-watch'
     | '/patients/$patientId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/patients'
     | '/profile'
+    | '/sepsis-watch'
     | '/'
     | '/patients/$patientId'
   id:
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/_portal/alerts'
     | '/_portal/patients'
     | '/_portal/profile'
+    | '/_portal/sepsis-watch'
     | '/_portal/'
     | '/_portal/patients_/$patientId'
   fileRoutesById: FileRoutesById
@@ -214,6 +226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalProfileRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/_portal/sepsis-watch': {
+      id: '/_portal/sepsis-watch'
+      path: '/sepsis-watch'
+      fullPath: '/sepsis-watch'
+      preLoaderRoute: typeof PortalSepsisWatchRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/_portal/patients_/$patientId': {
       id: '/_portal/patients_/$patientId'
       path: '/patients/$patientId'
@@ -229,6 +248,7 @@ interface PortalRouteChildren {
   PortalAlertsRoute: typeof PortalAlertsRoute
   PortalPatientsRoute: typeof PortalPatientsRoute
   PortalProfileRoute: typeof PortalProfileRoute
+  PortalSepsisWatchRoute: typeof PortalSepsisWatchRoute
   PortalIndexRoute: typeof PortalIndexRoute
   PortalPatientsPatientIdRoute: typeof PortalPatientsPatientIdRoute
 }
@@ -238,6 +258,7 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalAlertsRoute: PortalAlertsRoute,
   PortalPatientsRoute: PortalPatientsRoute,
   PortalProfileRoute: PortalProfileRoute,
+  PortalSepsisWatchRoute: PortalSepsisWatchRoute,
   PortalIndexRoute: PortalIndexRoute,
   PortalPatientsPatientIdRoute: PortalPatientsPatientIdRoute,
 }

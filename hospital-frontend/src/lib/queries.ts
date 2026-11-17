@@ -9,6 +9,7 @@ import {
   listGrantedPatients,
   listAlerts,
   getPatientVitals,
+  getSepsisWatch,
 } from "@/lib/api";
 
 export const healthQuery = queryOptions({ queryKey: ["health"], queryFn: getBackendHealth });
@@ -28,6 +29,10 @@ export const alertsQuery = queryOptions({ queryKey: ["alerts"], queryFn: listAle
 
 export function patientVitalsQuery(patientId: string) {
   return queryOptions({ queryKey: ["patientVitals", patientId], queryFn: () => getPatientVitals(patientId) });
+}
+
+export function sepsisWatchQuery(patientId: string) {
+  return queryOptions({ queryKey: ["sepsisWatch", patientId], queryFn: () => getSepsisWatch(patientId) });
 }
 
 // What HospitalLayout's access gate last resolved (it stays mounted around every

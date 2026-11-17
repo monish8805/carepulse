@@ -1,10 +1,10 @@
-import { Bell, Home, ShieldCheck, Users } from "lucide-react";
+import { Activity, Bell, Home, ShieldCheck, Users } from "lucide-react";
 import type { NavSection } from "@carepulse/portal";
 
 // Config-driven nav, kept next to HospitalLayout rather than inside the
 // generic Sidebar component. Only lists routes that actually exist today —
 // see PHASES.md for what's still ahead. This is the full, unfiltered set —
-// HospitalLayout hides "/patients"/"/alerts"/"/access" from the rendered
+// HospitalLayout hides "/patients"/"/alerts"/"/sepsis-watch"/"/access" from the rendered
 // sections for a viewer who currently lacks patient.view/alerts.view/
 // canManageStaff (see its own comment on visibleNavSections) — nav.ts itself
 // stays static config with no session-data access, same as before.
@@ -14,6 +14,7 @@ export const HOSPITAL_NAV_SECTIONS: NavSection[] = [
       { href: "/", label: "Home", icon: Home },
       { href: "/patients", label: "Patients", icon: Users },
       { href: "/alerts", label: "Alerts", icon: Bell },
+      { href: "/sepsis-watch", label: "Sepsis Watch", icon: Activity },
       { href: "/access", label: "Access & Roles", icon: ShieldCheck },
     ],
   },

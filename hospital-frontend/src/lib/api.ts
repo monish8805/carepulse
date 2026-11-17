@@ -141,6 +141,10 @@ export function getPatientVitals(patientId: string) {
   return sharedApi.getPatientVitals(BACKEND_URL, patientId);
 }
 
+export function getSepsisWatch(patientId: string) {
+  return sharedApi.getSepsisWatch(BACKEND_URL, patientId);
+}
+
 export function listAlerts() {
   return sharedApi.listAlerts(BACKEND_URL);
 }

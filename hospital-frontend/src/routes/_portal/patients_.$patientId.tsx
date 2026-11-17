@@ -90,6 +90,13 @@ function PatientVitalsPage() {
           ) : vitalsQuery.data ? (
             <div className="space-y-6">
               <PatientInformation patient={vitalsQuery.data.patient} />
+              <Link
+                to="/sepsis-watch"
+                search={{ patient: patientId }}
+                className="inline-block text-sm font-medium text-cp-primary hover:underline dark:text-cp-primary-dark"
+              >
+                Open in Sepsis Watch →
+              </Link>
               <VitalsHistory history={vitalsQuery.data} />
               <ChestXrayUpload />
             </div>

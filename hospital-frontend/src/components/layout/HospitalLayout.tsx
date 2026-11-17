@@ -200,6 +200,9 @@ export default function HospitalLayout({ children }: { children: React.ReactNode
     items: section.items.filter((item) => {
       if (item.href === "/patients") return user.hospital?.canViewPatients ?? false;
       if (item.href === "/alerts") return user.hospital?.canViewAlerts ?? false;
+      // The page's patient picker lists consenting patients, which needs patient.view as well.
+      if (item.href === "/sepsis-watch")
+        return (user.hospital?.canViewVitals && user.hospital?.canViewPatients) ?? false;
       if (item.href === "/access") return user.hospital?.canManageStaff ?? false;
       return true;
     }),
