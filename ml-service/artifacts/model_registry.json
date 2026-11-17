@@ -1,0 +1,66 @@
+{
+ "primary": "ssl_lstm",
+ "models": [
+  {
+   "key": "logistic_regression",
+   "name": "Logistic Regression",
+   "kind": "tabular_lr",
+   "file": "models/logistic_regression.pkl",
+   "platt_a": 1.0208952389593762,
+   "platt_b": -4.00365654115484,
+   "high_raw_threshold": 0.673398047267512,
+   "elevated_raw_threshold": 0.6037355289092818
+  },
+  {
+   "key": "xgboost",
+   "name": "XGBoost",
+   "kind": "tabular_xgb",
+   "file": "models/xgboost.json",
+   "platt_a": 1.0068368516378028,
+   "platt_b": -3.836094606622483,
+   "high_raw_threshold": 0.6741952574768308,
+   "elevated_raw_threshold": 0.5546232384672531
+  },
+  {
+   "key": "lstm",
+   "name": "LSTM",
+   "kind": "sequence_lstm",
+   "file": "models/lstm.pt",
+   "platt_a": 0.8219335462959481,
+   "platt_b": -2.224989780438902,
+   "high_raw_threshold": 0.241297601571275,
+   "elevated_raw_threshold": 0.15046980714454108
+  },
+  {
+   "key": "gru",
+   "name": "GRU",
+   "kind": "sequence_gru",
+   "file": "models/gru.pt",
+   "platt_a": 0.9491413916658676,
+   "platt_b": -2.0160488575881734,
+   "high_raw_threshold": 0.29186106744156043,
+   "elevated_raw_threshold": 0.16647103355481074
+  },
+  {
+   "key": "ssl_lstm",
+   "name": "Self-Supervised LSTM + Classifier",
+   "kind": "ssl_encoder_head",
+   "file": "models/ssl_lstm.pt",
+   "platt_a": 1.101985992233427,
+   "platt_b": -1.9548197706385144,
+   "high_raw_threshold": 0.2929828889491194,
+   "elevated_raw_threshold": 0.20312858910858633
+  },
+  {
+   "key": "scratch_lstm",
+   "name": "Same encoder from scratch (control)",
+   "kind": "ssl_encoder_head",
+   "file": "models/scratch_lstm.pt",
+   "platt_a": 0.9091121613920945,
+   "platt_b": -2.1340827010573515,
+   "high_raw_threshold": 0.2763615231160388,
+   "elevated_raw_threshold": 0.16419154274922151
+  }
+ ],
+ "note": "Stage 1 (ICU, 4 vitals + age + gender). high = F1-optimal threshold, elevated = utility-optimal threshold, both on the raw score and chosen on validation patients only; Platt parameters likewise."
+}

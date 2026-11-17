@@ -1,0 +1,34 @@
+{
+ "version": "stage1-icu-v4",
+ "sequence_length": 6,
+ "vitals": [
+  "HR",
+  "O2Sat",
+  "Temp",
+  "Resp"
+ ],
+ "valid_ranges": {
+  "HR": [
+   20,
+   300
+  ],
+  "O2Sat": [
+   50,
+   100
+  ],
+  "Temp": [
+   30,
+   43
+  ],
+  "Resp": [
+   3,
+   70
+  ]
+ },
+ "static": [
+  "Age",
+  "Gender"
+ ],
+ "max_stay_hours": 336,
+ "trained_on": "PhysioNet/CinC 2019 training sets A+B, patient-level split (splits.csv)"
+}
