@@ -10,6 +10,7 @@
     "seed:owner": "ts-node scripts/seedOwner.ts",
     "audit:multi-hospital": "ts-node scripts/auditMultiHospitalMemberships.ts",
     "replay:vitals": "ts-node scripts/replayVitals.ts",
+    "seed:sepsis-demo": "ts-node scripts/seedSepsisDemo.ts",
     "test": "vitest run"
   },
   "dependencies": {

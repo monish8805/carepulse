@@ -12,6 +12,8 @@ import { PatientConsentModel } from "../models/patientConsent.model";
 import { VitalsReadingModel } from "../models/vitalsReading.model";
 import { SepsisPredictionModel } from "../models/sepsisPrediction.model";
 import { AlertModel } from "../models/alert.model";
+import { HourlyRiskModel } from "../models/hourlyRisk.model";
+import { SimulatedStayModel } from "../models/simulatedStay.model";
 import * as hospitalService from "../domain/hospital.service";
 import { hashValue } from "../utils/hash";
 
@@ -20,8 +22,50 @@ import { hashValue } from "../utils/hash";
 // through untouched. The model itself is tested in ml-service/, not here.
 const HOUR_MS = 60 * 60 * 1000;
 const realFetch = globalThis.fetch;
-let mlCalls: { history: Record<string, number | null>[] }[] = [];
+let mlCalls: { history: Record<string, number | null>[]; age: number; gender: number }[] = [];
 let mlRespond: () => Promise<Response>;
+
+// The model service's other endpoints, faked at the same level. The series
+// fake scores every hour of whatever history it is sent: HIGH where
+// `highFromHour` says so, LOW before. `modelInfoDown` makes /models and
+// /comparison unreachable.
+let highFromHour = Infinity;
+let seriesRespond: ((body: { history: { hour: number }[] }) => Promise<Response>) | null = null;
+let modelInfoDown = false;
+
+function json(body: unknown) {
+  return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
+}
+
+function defaultSeries(body: { history: { hour: number }[] }) {
+  const score = (hour: number) => {
+    const high = hour >= highFromHour;
+    return { hour, model_score: high ? 0.4 : 0.1, sepsis_probability: high ? 0.08 : 0.02, risk_level: high ? "HIGH" : "LOW" };
+  };
+  const hours = body.history.map((row) => row.hour);
+  return json({
+    hours,
+    hour_warnings: hours.map((hour) => (hour < 5 ? [`Only ${hour + 1} of 6 hours of history so far.`] : [])),
+    warnings: [],
+    model_version: "stage1-test",
+    models: { xgboost: hours.map(score), ssl_lstm: hours.map(score) },
+  });
+}
+
+const MODEL_INFO: Record<string, unknown> = {
+  "/models": {
+    primary: "ssl_lstm",
+    models: [
+      { key: "xgboost", name: "XGBoost" },
+      { key: "ssl_lstm", name: "Self-Supervised LSTM + Classifier" },
+    ],
+    thresholds: {
+      xgboost: { high_probability: 0.058, elevated_probability: 0.03 },
+      ssl_lstm: { high_probability: 0.057, elevated_probability: 0.025 },
+    },
+  },
+  "/comparison": { rows: [{ Model: "XGBoost", AUROC: "0.7056", Precision: "0.0609" }] },
+};
 
 function mlReturns(riskLevel: "LOW" | "ELEVATED" | "HIGH", sepsisProbability = 0.02) {
   mlRespond = async () =>
@@ -56,7 +100,12 @@ async function selectHospital(token: string, hospitalId: string): Promise<string
   return res.body.accessToken as string;
 }
 
-async function createPatient(label: string): Promise<{ id: string; token: string }> {
+// A patient who has filled in the profile the model needs (age and gender);
+// pass `profile` to override, e.g. { gender: "other" } or { dateOfBirth: undefined }.
+async function createPatient(
+  label: string,
+  profile: Record<string, unknown> = {}
+): Promise<{ id: string; token: string }> {
   const email = `vitals.patient.${label}.${Date.now()}.${Math.random().toString(36).slice(2)}@example.com`;
   const password = "PatientPass1!";
   const user = await UserModel.create({
@@ -65,6 +114,9 @@ async function createPatient(label: string): Promise<{ id: string; token: string
     passwordHash: await hashValue(password),
     roles: ["patient"],
     isVerified: true,
+    dateOfBirth: new Date(Date.UTC(1960, 5, 15)),
+    gender: "male",
+    ...profile,
   });
   cleanupUserEmails.push(email);
   return { id: user._id.toString(), token: await loginAs(email, password, "patient") };
@@ -135,6 +187,15 @@ beforeAll(async () => {
   vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const url = input instanceof Request ? input.url : String(input);
     if (url.startsWith(ML_SERVICE_URL)) {
+      const path = url.slice(ML_SERVICE_URL.length);
+      if (path === "/predict_series") {
+        const body = JSON.parse(String(init?.body));
+        return seriesRespond ? seriesRespond(body) : defaultSeries(body);
+      }
+      if (path in MODEL_INFO) {
+        if (modelInfoDown) throw new TypeError("fetch failed");
+        return json(MODEL_INFO[path]);
+      }
       mlCalls.push(JSON.parse(String(init?.body)));
       return mlRespond();
     }
@@ -145,6 +206,9 @@ beforeAll(async () => {
 beforeEach(() => {
   mlCalls = [];
   mlReturns("LOW");
+  highFromHour = Infinity;
+  seriesRespond = null;
+  modelInfoDown = false;
 });
 
 afterAll(async () => {
@@ -153,6 +217,8 @@ afterAll(async () => {
   const userIds = users.map((u) => u._id);
   await VitalsReadingModel.deleteMany({ patientId: { $in: userIds } });
   await SepsisPredictionModel.deleteMany({ patientId: { $in: userIds } });
+  await HourlyRiskModel.deleteMany({ patientId: { $in: userIds } });
+  await SimulatedStayModel.deleteMany({ patientId: { $in: userIds } });
   await AlertModel.deleteMany({ patientId: { $in: userIds } });
   await PatientConsentModel.deleteMany({ $or: [{ patientId: { $in: userIds } }, { doctorId: { $in: userIds } }] });
   await AccessRoleModel.deleteMany({ hospital: { $in: cleanupHospitalIds } });
@@ -170,7 +236,7 @@ describe("Recording vitals (patient)", () => {
     const res = await record(patient.token, reading());
     expect(res.status).toBe(201);
     expect(res.body.reading.HR).toBe(92);
-    expect(res.body.reading.SBP).toBeNull();
+    expect(res.body.reading.Resp).toBe(20);
     expect(res.body.prediction).toMatchObject({
       status: "scored",
       riskLevel: "ELEVATED",
@@ -222,6 +288,36 @@ describe("Scoring", () => {
     expect(await AlertModel.countDocuments({ patientId: patient.id })).toBe(0);
   });
 
+  it("sends whole years of age at the newest reading, and gender as 0/1", async () => {
+    const now = new Date();
+    const birthday = (daysLater: number) =>
+      new Date(Date.UTC(now.getUTCFullYear() - 30, now.getUTCMonth(), now.getUTCDate() + daysLater));
+
+    const birthdayToday = await createPatient("female", { gender: "female", dateOfBirth: birthday(0) });
+    await record(birthdayToday.token, reading());
+    expect(mlCalls[0]).toMatchObject({ age: 30, gender: 0 });
+
+    const birthdayTomorrow = await createPatient("male", { dateOfBirth: birthday(1) });
+    await record(birthdayTomorrow.token, reading());
+    expect(mlCalls[1]).toMatchObject({ age: 29, gender: 1 });
+  });
+
+  it.each([
+    ["gender is 'other'", { gender: "other" }],
+    ["gender is missing", { gender: undefined }],
+    ["date of birth is missing", { dateOfBirth: undefined }],
+  ])("doesn't score, and never raises an alert, when %s", async (_label, profile) => {
+    const patient = await createPatient("noprofile", profile);
+    mlReturns("HIGH", 0.2);
+
+    const res = await record(patient.token, reading());
+    expect(res.status).toBe(201);
+    expect(res.body.prediction.status).toBe("unavailable");
+    expect(res.body.prediction.warning).toMatch(/date of birth/i);
+    expect(mlCalls).toHaveLength(0);
+    expect(await AlertModel.countDocuments({ patientId: patient.id })).toBe(0);
+  });
+
   it("treats an unreachable model service the same way", async () => {
     const patient = await createPatient("mlunreachable");
     mlRespond = async () => {
@@ -243,8 +339,8 @@ describe("Scoring", () => {
     await record(patient.token, { recordedAt: at(3 * HOUR_MS), HR: 90 });
 
     const sent = mlCalls[mlCalls.length - 1];
-    expect(Object.keys(sent)).toEqual(["history"]);
-    const nulls = { O2Sat: null, SBP: null, MAP: null, DBP: null, Resp: null };
+    expect(Object.keys(sent)).toEqual(["history", "age", "gender"]);
+    const nulls = { O2Sat: null, Resp: null };
     expect(sent.history).toEqual([
       { hour: 0, HR: 84, Temp: 37.5, ...nulls },
       { hour: 3, HR: 90, Temp: null, ...nulls },
@@ -384,6 +480,145 @@ describe("Doctor's view of a patient's vitals (consent + live permission)", () =
       .get(`/api/hospital/patients/${patient.id}/vitals`)
       .set("Authorization", `Bearer ${patient.token}`);
     expect(res.status).toBe(403);
+  });
+});
+
+describe("Sepsis Watch series", () => {
+  const watch = (token: string, patientId: string) =>
+    request(app).get(`/api/hospital/patients/${patientId}/sepsis-watch`).set("Authorization", `Bearer ${token}`);
+
+  // Hourly readings ending now; null entries are hours with nothing recorded
+  // (no reading is sent for them, so they stay gaps in the series).
+  async function recordStay(token: string, hourly: (Record<string, number> | null)[]) {
+    const start = Date.now() - hourly.length * HOUR_MS;
+    for (const [hour, values] of hourly.entries()) {
+      if (values) expect((await record(token, { recordedAt: new Date(start + hour * HOUR_MS).toISOString(), ...values })).status).toBe(201);
+    }
+  }
+
+  it("returns hourly vitals, each model's risk, the alert hours and the alert levels", async () => {
+    const doctor = await createDoctor("watch", ["vitals.view"]);
+    const patient = await createPatient("watch");
+    await grant(patient.token, doctor.email, ["vitals.continuous"]);
+    highFromHour = 2;
+    await recordStay(patient.token, [{ HR: 80 }, { HR: 85 }, { HR: 90 }, { HR: 95 }]);
+
+    const res = await watch(doctor.token, patient.id);
+    expect(res.status).toBe(200);
+    expect(res.body.patient).toMatchObject({ name: "Patient watch", age: expect.any(Number), gender: "male" });
+    expect(res.body.hours.map((h: { HR: number }) => h.HR)).toEqual([80, 85, 90, 95]);
+    expect(res.body.risk.xgboost).toHaveLength(4);
+    expect(res.body.risk.ssl_lstm[0]).toMatchObject({ hour: 0, probability: 0.02, riskLevel: "LOW", alert: false });
+    expect(res.body.alertHours).toEqual({ xgboost: [2, 3], ssl_lstm: [2, 3] });
+    expect(res.body.alertLevels.ssl_lstm).toEqual({ high: 0.057, elevated: 0.025 });
+    expect(res.body.primary).toBe("ssl_lstm");
+    expect(res.body.comparison[0].Model).toBe("XGBoost");
+    expect(res.body.warnings[0]).toEqual({ hour: 0, warnings: ["Only 1 of 6 hours of history so far."] });
+    // A live patient has no known label or onset, so there is nothing to mark.
+    expect(res.body.simulation).toBeNull();
+    expect(JSON.stringify(res.body)).not.toMatch(/diagnos|sepsis detected/i);
+  });
+
+  it("keeps hours with no reading as empty slots on the shared axis", async () => {
+    const doctor = await createDoctor("gaps", ["vitals.view"]);
+    const patient = await createPatient("gaps");
+    await grant(patient.token, doctor.email, ["vitals.continuous"]);
+    await recordStay(patient.token, [{ HR: 80 }, null, null, { O2Sat: 95 }]);
+
+    const res = await watch(doctor.token, patient.id);
+    expect(res.body.hours).toHaveLength(4);
+    expect(res.body.hours[1]).toEqual({ hour: 1, HR: null, O2Sat: null, Temp: null, Resp: null });
+    expect(res.body.hours[3]).toMatchObject({ HR: null, O2Sat: 95 });
+    expect(res.body.risk.ssl_lstm.map((p: { hour: number }) => p.hour)).toEqual([0, 3]);
+  });
+
+  it("is an empty series for a patient with no readings yet", async () => {
+    const doctor = await createDoctor("empty", ["vitals.view"]);
+    const patient = await createPatient("empty");
+    await grant(patient.token, doctor.email, ["vitals.continuous"]);
+
+    const res = await watch(doctor.token, patient.id);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ hours: [], risk: {}, alertHours: {}, startsAt: null });
+  });
+
+  it("is 404 without an active vitals.continuous grant to THIS doctor (no cross-doctor or cross-hospital reads)", async () => {
+    const doctorA = await createDoctor("isoa", ["vitals.view"]);
+    const doctorB = await createDoctor("isob", ["vitals.view"]);
+    const patient = await createPatient("iso");
+    await record(patient.token, reading());
+    await grant(patient.token, doctorA.email, ["vitals.continuous"]);
+
+    expect((await watch(doctorA.token, patient.id)).status).toBe(200);
+    expect((await watch(doctorB.token, patient.id)).status).toBe(404);
+    expect((await watch(doctorB.token, new mongoose.Types.ObjectId().toString())).status).toBe(404);
+
+    const occasionalOnly = await createPatient("isoocc");
+    await grant(occasionalOnly.token, doctorB.email, ["vitals.occasional"]);
+    expect((await watch(doctorB.token, occasionalOnly.id)).status).toBe(404);
+  });
+
+  it("is 403 without vitals.view even with a grant, and Hospital Portal only", async () => {
+    const doctor = await createDoctor("noview", ["patient.view"]);
+    const patient = await createPatient("noview");
+    await grant(patient.token, doctor.email, ["vitals.continuous"]);
+
+    expect((await watch(doctor.token, patient.id)).status).toBe(403);
+    expect((await watch(patient.token, patient.id)).status).toBe(403);
+  });
+
+  it("still returns the stored curves when the model service is down at read time, without alert levels or metrics", async () => {
+    const doctor = await createDoctor("down", ["vitals.view"]);
+    const patient = await createPatient("down");
+    await grant(patient.token, doctor.email, ["vitals.continuous"]);
+    highFromHour = 1;
+    await recordStay(patient.token, [{ HR: 80 }, { HR: 90 }]);
+
+    modelInfoDown = true;
+    const res = await watch(doctor.token, patient.id);
+    expect(res.status).toBe(200);
+    expect(res.body.alertHours.ssl_lstm).toEqual([1]);
+    expect(res.body.alertLevels).toBeNull();
+    expect(res.body.comparison).toBeNull();
+    expect(res.body.primary).toBeNull();
+    expect(res.body.models.map((m: { key: string }) => m.key).sort()).toEqual(["ssl_lstm", "xgboost"]);
+  });
+
+  it("shows vitals with no risk curve when the model service was down at ingestion", async () => {
+    const doctor = await createDoctor("ingestdown", ["vitals.view"]);
+    const patient = await createPatient("ingestdown");
+    await grant(patient.token, doctor.email, ["vitals.continuous"]);
+    seriesRespond = async () => new Response("boom", { status: 500 });
+    await recordStay(patient.token, [{ HR: 80 }, { HR: 90 }]);
+
+    const res = await watch(doctor.token, patient.id);
+    expect(res.status).toBe(200);
+    expect(res.body.hours).toHaveLength(2);
+    expect(res.body.risk).toEqual({});
+    expect(await AlertModel.countDocuments({ patientId: patient.id })).toBe(0);
+  });
+
+  it("doesn't store a curve for a patient the model can't score (no gender)", async () => {
+    const doctor = await createDoctor("nogender", ["vitals.view"]);
+    const patient = await createPatient("nogender", { gender: undefined });
+    await grant(patient.token, doctor.email, ["vitals.continuous"]);
+    await record(patient.token, reading());
+
+    const res = await watch(doctor.token, patient.id);
+    expect(res.body.hours).toHaveLength(1);
+    expect(res.body.risk).toEqual({});
+    expect(await HourlyRiskModel.countDocuments({ patientId: patient.id })).toBe(0);
+  });
+
+  it("reports the label and onset hours only for a simulated stay", async () => {
+    const doctor = await createDoctor("sim", ["vitals.view"]);
+    const patient = await createPatient("sim");
+    await grant(patient.token, doctor.email, ["vitals.continuous"]);
+    await record(patient.token, reading());
+    await SimulatedStayModel.create({ patientId: patient.id, sampleId: "p012210", labelHour: 37 });
+
+    const res = await watch(doctor.token, patient.id);
+    expect(res.body.simulation).toEqual({ sampleId: "p012210", labelStartsHour: 37, onsetHour: 43 });
   });
 });
 

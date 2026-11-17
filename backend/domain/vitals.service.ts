@@ -4,7 +4,7 @@ import { VitalsReadingModel } from "../models/vitalsReading.model";
 import { SepsisPredictionModel } from "../models/sepsisPrediction.model";
 import { UserModel } from "../models/user.model";
 import { HttpError } from "../utils/httpError";
-import { scoreAfterReading } from "./inference.service";
+import { refreshRiskSeries, scoreAfterReading } from "./inference.service";
 import { assertActiveConsent } from "./patientConsent.service";
 
 // recordedAt comes from the client because readings aren't always sent the
@@ -89,6 +89,7 @@ export async function recordVitals(
 
   const reading = await VitalsReadingModel.create({ patientId, ...input });
   const prediction = await scoreAfterReading(patientId);
+  await refreshRiskSeries(patientId);
   return { reading: toReadingSummary(reading), prediction: toPredictionSummary(prediction) };
 }
 

@@ -1,5 +1,6 @@
 import { Response, NextFunction } from "express";
 import * as vitalsService from "../domain/vitals.service";
+import * as sepsisWatchService from "../domain/sepsisWatch.service";
 import { AuthenticatedRequest } from "../middleware/auth.middleware";
 import { VITALS, Vital } from "../config/vitals";
 
@@ -34,6 +35,14 @@ export async function listMyVitals(req: AuthenticatedRequest, res: Response, nex
 export async function listPatientVitals(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     res.status(200).json(await vitalsService.listPatientVitals(req.userId!, req.params.id));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getSepsisWatch(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    res.status(200).json(await sepsisWatchService.getSepsisWatch(req.userId!, req.params.id));
   } catch (err) {
     next(err);
   }

@@ -83,6 +83,7 @@ router.post("/patient-consents/:id/revoke", patientConsentController.revokeGrant
 // (checked in the domain layer). A missing consent is a 404, never a hint
 // that the patient exists.
 router.get("/patients/:id/vitals", requirePermission("vitals.view"), vitalsController.listPatientVitals);
+router.get("/patients/:id/sepsis-watch", requirePermission("vitals.view"), vitalsController.getSepsisWatch);
 router.get("/alerts", requirePermission("alerts.view"), alertController.listAlerts);
 router.post("/alerts/:id/acknowledge", requirePermission("alerts.acknowledge"), alertController.acknowledgeAlert);
 

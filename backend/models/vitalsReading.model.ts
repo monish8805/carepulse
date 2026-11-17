@@ -8,12 +8,11 @@ const vitalsReadingSchema = new Schema(
   {
     patientId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     recordedAt: { type: Date, required: true },
+    // "simulated" = replayed demo data (scripts/seedSepsisDemo.ts), not a real patient's.
+    source: { type: String, enum: ["patient", "simulated"], default: "patient" },
     HR: { type: Number, default: null },
     O2Sat: { type: Number, default: null },
     Temp: { type: Number, default: null },
-    SBP: { type: Number, default: null },
-    MAP: { type: Number, default: null },
-    DBP: { type: Number, default: null },
     Resp: { type: Number, default: null },
   },
   { timestamps: true }

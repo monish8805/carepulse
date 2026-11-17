@@ -3,7 +3,7 @@ import { HttpError } from "../utils/httpError";
 import { optionalNumberInRange, requireIsoDate } from "./field.validator";
 import { VITALS, VITAL_RANGES } from "../config/vitals";
 
-// Shape only: a date and up to seven numbers inside the model's plausible
+// Shape only: a date and up to four numbers inside the model's plausible
 // ranges. Whether recordedAt is an acceptable moment lives in
 // domain/vitals.service.ts.
 export function validateRecordVitals(req: Request, _res: Response, next: NextFunction) {
