@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { UserRound, Settings } from "lucide-react";
 import { logout } from "@/lib/api";
 import { healthQuery } from "@/lib/queries";
@@ -11,13 +11,9 @@ import CompleteProfileGate from "@/components/profile/CompleteProfileGate";
 import { PATIENT_NAV_SECTIONS } from "./nav";
 
 // Account/personal actions — not application navigation, kept out of the
-// Sidebar (see DESIGN.md's account-nav vs. hospital-nav split). Profile
-// /Settings have no page yet, so they render disabled with a "Coming soon"
-// hint rather than linking somewhere that doesn't exist.
-const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
-  { label: "Profile", icon: UserRound, disabled: true, hint: "Coming soon" },
-  { label: "Settings", icon: Settings, disabled: true, hint: "Coming soon" },
-];
+// Sidebar (see DESIGN.md's account-nav vs. hospital-nav split). Settings has
+// no page yet, so it renders disabled with a "Coming soon" hint rather than
+// linking somewhere that doesn't exist.
 
 // Owns the application shell (header + sidebar) for every route under
 // src/routes/_portal/. Deliberately does its own lightweight session check to know
@@ -35,6 +31,7 @@ const ACCOUNT_MENU_ITEMS: AccountMenuItem[] = [
 // not a security boundary — the backend doesn't depend on these fields.
 export default function PatientLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
+  const pathname = useLocation().pathname;
   const queryClient = useQueryClient();
   useAuthSync();
   const session = useSession();
@@ -82,13 +79,17 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
   }
 
   const profileComplete = isPatientProfileComplete(user);
+  const accountMenuItems: AccountMenuItem[] = [
+    { label: "Profile", icon: UserRound, onClick: () => navigate({ to: "/profile" }), active: pathname === "/profile" },
+    { label: "Settings", icon: Settings, disabled: true, hint: "Coming soon" },
+  ];
   const header = (
     <Header
       portalName="Patient"
       backendUp={backendUp}
       userName={user.name}
       userEmail={user.email}
-      accountMenuItems={ACCOUNT_MENU_ITEMS}
+      accountMenuItems={accountMenuItems}
       onLogout={handleLogout}
       showMenuButton={profileComplete}
       mobileMenuOpen={mobileOpen}

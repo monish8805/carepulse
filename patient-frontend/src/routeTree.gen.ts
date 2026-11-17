@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PortalIndexRouteImport } from './routes/_portal/index'
 import { Route as PortalPrescriptionRouteImport } from './routes/_portal/prescription'
+import { Route as PortalProfileRouteImport } from './routes/_portal/profile'
 import { Route as PortalSharingRouteImport } from './routes/_portal/sharing'
 import { Route as PortalVitalsRouteImport } from './routes/_portal/vitals'
 import { Route as PortalXrayRouteImport } from './routes/_portal/xray'
@@ -48,6 +49,11 @@ const PortalPrescriptionRoute = PortalPrescriptionRouteImport.update({
   path: '/prescription',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalProfileRoute = PortalProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => PortalRoute,
+} as any)
 const PortalSharingRoute = PortalSharingRouteImport.update({
   id: '/sharing',
   path: '/sharing',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/prescription': typeof PortalPrescriptionRoute
+  '/profile': typeof PortalProfileRoute
   '/sharing': typeof PortalSharingRoute
   '/vitals': typeof PortalVitalsRoute
   '/xray': typeof PortalXrayRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/prescription': typeof PortalPrescriptionRoute
+  '/profile': typeof PortalProfileRoute
   '/sharing': typeof PortalSharingRoute
   '/vitals': typeof PortalVitalsRoute
   '/xray': typeof PortalXrayRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/_portal/prescription': typeof PortalPrescriptionRoute
+  '/_portal/profile': typeof PortalProfileRoute
   '/_portal/sharing': typeof PortalSharingRoute
   '/_portal/vitals': typeof PortalVitalsRoute
   '/_portal/xray': typeof PortalXrayRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/prescription'
+    | '/profile'
     | '/sharing'
     | '/vitals'
     | '/xray'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/prescription'
+    | '/profile'
     | '/sharing'
     | '/vitals'
     | '/xray'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/_portal/prescription'
+    | '/_portal/profile'
     | '/_portal/sharing'
     | '/_portal/vitals'
     | '/_portal/xray'
@@ -181,6 +193,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalPrescriptionRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/_portal/profile': {
+      id: '/_portal/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof PortalProfileRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/_portal/sharing': {
       id: '/_portal/sharing'
       path: '/sharing'
@@ -207,6 +226,7 @@ declare module '@tanstack/react-router' {
 
 interface PortalRouteChildren {
   PortalPrescriptionRoute: typeof PortalPrescriptionRoute
+  PortalProfileRoute: typeof PortalProfileRoute
   PortalSharingRoute: typeof PortalSharingRoute
   PortalVitalsRoute: typeof PortalVitalsRoute
   PortalXrayRoute: typeof PortalXrayRoute
@@ -215,6 +235,7 @@ interface PortalRouteChildren {
 
 const PortalRouteChildren: PortalRouteChildren = {
   PortalPrescriptionRoute: PortalPrescriptionRoute,
+  PortalProfileRoute: PortalProfileRoute,
   PortalSharingRoute: PortalSharingRoute,
   PortalVitalsRoute: PortalVitalsRoute,
   PortalXrayRoute: PortalXrayRoute,
