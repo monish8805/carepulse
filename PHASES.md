@@ -33,7 +33,7 @@ Order matters: the authorization foundation comes before any hospital-operations
 
 - Patient record data model.
 - ~~Patient consent: granting/viewing/revoking which hospitals/staff can access their data~~ — the consent *gateway* was pulled forward into Phase 2 (see above), ahead of any patient data existing for it to actually gate.
-- **Vitals data model and capture ✅ Done (thin slice).** `VitalsReading` with the sepsis model's seven vitals, recorded through `POST /api/patient/vitals` (demo: `npm run replay:vitals`). Every doctor-side read checks an active `vitals.continuous` grant **and** the doctor's live permission. Not yet: staff/device capture. See ARCHITECTURE.md's "Vitals, sepsis scoring & alerts".
+- **Vitals data model and capture ✅ Done (thin slice).** `VitalsReading` with the sepsis model's four vitals (HR, O2Sat, Temp, Resp), recorded through `POST /api/patient/vitals` (demo: `npm run replay:vitals`). Every doctor-side read checks an active `vitals.continuous` grant **and** the doctor's live permission. Not yet: staff/device capture. **Sepsis Watch** (hospital page: hourly vitals + per-model risk on one axis, demo replay via `npm run seed:sepsis-demo`) is built on top of it. See ARCHITECTURE.md's "Vitals, sepsis scoring & alerts".
 
 ## Phase 4 — Monitoring & Visualization
 

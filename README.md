@@ -54,6 +54,25 @@ cd owner-frontend    && npm run dev      # http://localhost:3003
 Copy `.env.local.example` to `.env.local` in each if the API isn't on `http://localhost:5001`.
 In development, the round TanStack button in the bottom-right corner opens the Router and Query devtools.
 
+### Sepsis Watch demo (no real data needed)
+
+The Hospital Portal's **Sepsis Watch** page shows one patient's hourly vitals and the early-warning risk from each model on a shared hour axis (hover/drag or the slider to move the cursor, Play to replay the stay). It needs the model service running and a doctor account:
+
+```
+# 1. model service (once: uv venv --python 3.11 .venv && uv pip install --python .venv/bin/python -r requirements.txt)
+cd ml-service && ./start.sh                       # http://127.0.0.1:8000
+
+# 2. backend (ML_SERVICE_URL in backend/.env defaults to that address)
+cd backend && npm run dev
+
+# 3. replay the six held-out ICU stays as simulated patients and share them with a doctor
+cd backend && npm run seed:sepsis-demo -- doctor@hospital.example      # or add a sample id, e.g. p012210
+```
+
+Then log in to the Hospital Portal as that doctor and open **Sepsis Watch**. Simulated stays show where the dataset's label turns on and the defined onset (6 hours later) — never shown for live patients. The seed script is safe to rerun. Only `p012210`, `p009914` and `p102671` have an onset. The sample file has no age or gender, so the script assigns made-up ones (the model needs both).
+
+**Not built yet:** staff/device vitals capture (only the patient's own `POST /api/patient/vitals` and this replay write readings), and the Stage 2 wearable models.
+
 ### Tests
 
 ```
