@@ -1,0 +1,16 @@
+.git
+.github
+**/node_modules
+**/dist
+**/.tanstack
+**/.env
+**/.env.*
+!**/.env.example
+**/*.log
+**/*.tsbuildinfo
+# Frontend images need only the apps, packages/ and the e2e manifest (a workspace member).
+backend
+ml-service
+e2e/*
+!e2e/package.json
+*.md

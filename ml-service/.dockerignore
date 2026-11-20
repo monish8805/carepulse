@@ -1,0 +1,8 @@
+.venv
+__pycache__
+*.pyc
+sample_patients.json
+start.sh
+README.md
+Dockerfile
+.dockerignore

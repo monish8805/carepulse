@@ -1,0 +1,78 @@
+# Local integration stack: docker compose up --build
+# Secrets come from a git-ignored .env next to this file (copy .env.example). Nothing
+# secret is written into an image or this file.
+services:
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # No `ports:` on purpose. The model service has no auth, so only the backend can
+  # reach it, over the compose network. Never publish this port.
+  ml-service:
+    build: ./ml-service
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  backend:
+    build: ./backend
+    ports:
+      - "5001:5001"
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017/carepulse}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (see .env.example)}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3001,http://localhost:3002,http://localhost:3003}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL:-no-reply@carepulse.dev}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-CarePulse}
+      ML_SERVICE_URL: http://ml-service:8000
+    depends_on:
+      mongo:
+        condition: service_healthy
+      ml-service:
+        condition: service_healthy
+
+  patient-frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        APP: patient-frontend
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5001}
+    ports:
+      - "3001:8080"
+    depends_on: [backend]
+
+  hospital-frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        APP: hospital-frontend
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5001}
+    ports:
+      - "3002:8080"
+    depends_on: [backend]
+
+  owner-frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        APP: owner-frontend
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5001}
+    ports:
+      - "3003:8080"
+    depends_on: [backend]
+
+volumes:
+  mongo-data:
