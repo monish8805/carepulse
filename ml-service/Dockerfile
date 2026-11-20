@@ -22,8 +22,11 @@ RUN apt-get update \
     && useradd --system --uid 10001 --no-create-home appuser
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH" PYTHONUNBUFFERED=1
+# One thread each for torch/xgboost. On a small CPU quota, many threads fight over it and a
+# call took 6-10 s instead of ~0.1 s; one call is ~20 ms of work, so extra threads buy nothing.
+ENV OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
 WORKDIR /app
-COPY api.py sepsis_core.py sepsis_router.py ./
+COPY api.py auth.py sepsis_core.py sepsis_router.py ./
 COPY artifacts ./artifacts
 COPY models ./models
 COPY results ./results
@@ -31,6 +34,6 @@ USER appuser
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
-# 0.0.0.0 is the container's own interface. The service has no auth, so it is never
-# published to the host: only the backend reaches it over the compose network.
+# ML_API_KEY is supplied at run time (never baked in); the service refuses to start without it.
+# 0.0.0.0 is the container's own interface. /health is open, every other route needs the key.
 CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]

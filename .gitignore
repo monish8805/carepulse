@@ -30,3 +30,6 @@ e2e/playwright-report/
 # ML service Python environment
 ml-service/.venv/
 __pycache__/
+
+# Wrangler local state
+.wrangler/

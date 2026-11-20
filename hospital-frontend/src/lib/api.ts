@@ -1,6 +1,6 @@
 import * as sharedApi from "@carepulse/api";
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const BACKEND_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5001";
 const ROLE = "hospital" as const;
 
 sharedApi.setRefreshPortal(BACKEND_URL, ROLE);

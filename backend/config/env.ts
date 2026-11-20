@@ -22,6 +22,9 @@ export const BREVO_API_KEY = process.env.BREVO_API_KEY;
 export const BREVO_SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || "no-reply@carepulse.dev";
 export const BREVO_SENDER_NAME = process.env.BREVO_SENDER_NAME || "CarePulse";
 
-// The sepsis model service (ml-service/). Server-side only: it has no auth of
-// its own, so it must never be exposed to browsers or put in frontend config.
+// The sepsis model service (ml-service/). Server-side only: browsers never call it,
+// so its URL and key never go in frontend config.
 export const ML_SERVICE_URL = (process.env.ML_SERVICE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+
+// Sent to the model service as X-API-Key. Backend-only: never in frontend config, an image or a log line.
+export const ML_API_KEY = process.env.ML_API_KEY;

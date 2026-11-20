@@ -3,6 +3,8 @@ __pycache__
 *.pyc
 sample_patients.json
 start.sh
+tests
+requirements-dev.txt
 README.md
 Dockerfile
 .dockerignore

@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { ML_SERVICE_URL } from "../config/env";
+import { mlFetch } from "../utils/mlClient";
 import { VITALS, Vital } from "../config/vitals";
 import { VitalsReadingModel } from "../models/vitalsReading.model";
 import { SepsisPredictionModel, RISK_LEVELS, RiskLevel } from "../models/sepsisPrediction.model";
@@ -92,7 +92,7 @@ export function staticInputsFor(
 
 // Nothing identifying is sent — only the hourly vitals, age and gender.
 async function requestPrediction(history: HistoryRow[], inputs: StaticInputs): Promise<ModelResult> {
-  const response = await fetch(`${ML_SERVICE_URL}/predict`, {
+  const response = await mlFetch("/predict", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ history, age: inputs.age, gender: inputs.gender }),
@@ -181,7 +181,7 @@ interface SeriesResponse {
 }
 
 async function requestSeries(history: HistoryRow[], inputs: StaticInputs): Promise<SeriesResponse> {
-  const response = await fetch(`${ML_SERVICE_URL}/predict_series`, {
+  const response = await mlFetch("/predict_series", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ history, age: inputs.age, gender: inputs.gender }),

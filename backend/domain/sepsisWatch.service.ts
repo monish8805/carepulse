@@ -1,4 +1,4 @@
-import { ML_SERVICE_URL } from "../config/env";
+import { mlFetch } from "../utils/mlClient";
 import { NORMAL_RANGES, VITALS, VITALS_CONSENT_CATEGORY, Vital } from "../config/vitals";
 import { HourlyRiskModel } from "../models/hourlyRisk.model";
 import { SimulatedStayModel } from "../models/simulatedStay.model";
@@ -26,7 +26,7 @@ interface ModelsResponse {
 // it. Best effort: the stored curves are still shown when the service is down.
 async function fetchFromModelService<T>(path: string): Promise<T | null> {
   try {
-    const response = await fetch(`${ML_SERVICE_URL}${path}`, { signal: AbortSignal.timeout(ML_INFO_TIMEOUT_MS) });
+    const response = await mlFetch(path, { signal: AbortSignal.timeout(ML_INFO_TIMEOUT_MS) });
     return response.ok ? ((await response.json()) as T) : null;
   } catch {
     return null;

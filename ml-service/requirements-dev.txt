@@ -1,0 +1,4 @@
+# Test-only; the Docker image installs requirements.txt alone.
+-r requirements.txt
+pytest>=8
+httpx>=0.27

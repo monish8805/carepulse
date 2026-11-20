@@ -12,10 +12,12 @@ services:
       timeout: 5s
       retries: 5
 
-  # No `ports:` on purpose. The model service has no auth, so only the backend can
-  # reach it, over the compose network. Never publish this port.
+  # No `ports:` on purpose: only the backend needs it, over the compose network.
+  # /health is open; every other route needs ML_API_KEY.
   ml-service:
     build: ./ml-service
+    environment:
+      ML_API_KEY: ${ML_API_KEY:?Set ML_API_KEY in .env (see .env.example)}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
       interval: 15s
@@ -35,6 +37,7 @@ services:
       BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL:-no-reply@carepulse.dev}
       BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-CarePulse}
       ML_SERVICE_URL: http://ml-service:8000
+      ML_API_KEY: ${ML_API_KEY:?Set ML_API_KEY in .env (see .env.example)}
     depends_on:
       mongo:
         condition: service_healthy

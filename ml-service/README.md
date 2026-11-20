@@ -1,6 +1,6 @@
 # ml-service — sepsis early-warning model (Stage 1)
 
-The serving layer for the **Stage 1** sepsis models, run as its own process. The CarePulse backend is the only caller; browsers never reach it. Research prototype (PhysioNet/CinC 2019 ICU data) — **not a diagnostic tool, not clinically validated**.
+The serving layer for the **Stage 1** sepsis models, run as its own process. The CarePulse backend is the only caller; browsers never reach it, and once deployed it must also prove who it is (see **Authentication**). Research prototype (PhysioNet/CinC 2019 ICU data) — **not a diagnostic tool, not clinically validated**.
 
 **Inputs:** hourly HR, O2Sat, Temp, Resp (any may be `null`) plus the patient's **age** and **gender** (0 = female, 1 = male). Stage 2 (wearable-trained) models are not included.
 
@@ -16,11 +16,26 @@ uv pip install --python .venv/bin/python -r requirements.txt
 ./start.sh                             # http://127.0.0.1:8000, docs at /docs
 ```
 
+## Authentication
+
+Every route except `GET /health` requires the header `X-API-Key: <ML_API_KEY>`; a missing or wrong key is a `401`. The key is a shared secret between this service and the backend (`ML_API_KEY` in both environments) and is only ever set at run time, never in an image or in frontend code. The service refuses to start without it. For local development, `./start.sh` sets `ML_AUTH_DISABLED=true` when no key is given (it only listens on 127.0.0.1); with a key set, `/docs` is turned off as well.
+
+```bash
+export ML_API_KEY=$(openssl rand -hex 32)   # use the same value in backend/.env
+```
+
+## Test
+
+```bash
+uv pip install --python .venv/bin/python -r requirements-dev.txt
+.venv/bin/python -m pytest tests
+```
+
 ## Check
 
 ```bash
 curl http://127.0.0.1:8000/health
-curl -X POST http://127.0.0.1:8000/predict -H "Content-Type: application/json" \
+curl -X POST http://127.0.0.1:8000/predict -H "X-API-Key: $ML_API_KEY" -H "Content-Type: application/json" \
   -d '{"age":67,"gender":1,"history":[{"hour":10,"HR":92,"O2Sat":96,"Temp":37.4,"Resp":20}]}'
 ```
 

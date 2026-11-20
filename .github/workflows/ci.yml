@@ -109,10 +109,13 @@ jobs:
           cache-dependency-path: ml-service/requirements.txt
       # CPU-only torch: the default Linux wheel bundles CUDA (~2 GB) the service never uses.
       - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q tests
       # Starting the service loads every model from models/ + artifacts/, so a
       # missing or incompatible weight file fails here, not in production.
       - name: Start service and call it
+        env:
+          ML_API_KEY: ci-smoke-test-key
         run: |
           python -m uvicorn api:app --host 127.0.0.1 --port 8000 &
           for i in $(seq 1 30); do
@@ -120,7 +123,9 @@ jobs:
             sleep 2
           done
           curl -sf http://127.0.0.1:8000/health
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8000/predict)" = "401"
           curl -sf -X POST http://127.0.0.1:8000/predict \
+            -H "X-API-Key: $ML_API_KEY" \
             -H "Content-Type: application/json" \
             -d '{"age":67,"gender":1,"history":[{"hour":10,"HR":92,"O2Sat":96,"Temp":37.4,"Resp":20}]}'
 
