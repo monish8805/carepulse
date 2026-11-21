@@ -1,6 +1,8 @@
 """FastAPI service for the sepsis early-warning prototype.
 Run:  uvicorn api:app --port 8000
 The routes live in sepsis_router.py so an existing backend can include them; this file only adds /health and the API-key check."""
+import os
+
 from fastapi import Depends, FastAPI
 
 from auth import auth_enabled, check_auth_configured, require_api_key
@@ -18,4 +20,5 @@ app.include_router(router, dependencies=[Depends(require_api_key)])
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model_loaded": hub is not None}
+    # Read per call, not at import: deploy.yml compares this with the commit it just deployed.
+    return {"status": "ok", "model_loaded": hub is not None, "commit": os.environ.get("GIT_SHA", "unknown")}

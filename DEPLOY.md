@@ -1,0 +1,178 @@
+# Deploying CarePulse
+
+Everything on the free tiers, no domain needed.
+
+```
+Browser ──► Cloudflare Worker (one per portal: patient / hospital / owner)
+              ├─ static app files
+              └─ /api/*  ──proxy──►  Render: carepulse-backend ──► MongoDB Atlas
+                                           │
+                                           └──(X-API-Key)──► Render: carepulse-ml-service
+```
+
+The browser only ever talks to its own `*.workers.dev` address. The Worker forwards `/api/*`
+to the backend, which is what makes the `SameSite=Lax` refresh-token cookie work without a
+shared domain (see `workers/api-proxy.ts`).
+
+Code deploys itself (`.github/workflows/deploy.yml`). The steps below are the one-time
+account setup that only you can do. Do them in order; each step says what you get out of it.
+
+---
+
+## 1. MongoDB Atlas (database)
+
+Production data gets its own database and its own login. Nothing from development is reused.
+
+1. Use the free **M0** cluster, and create a **separate production database** (e.g. `carepulse-prod`).
+   Do **not** point production at the dev database the backend tests run against: those tests
+   create and delete data, and a test run must never be able to touch real patient records.
+2. *Database Access* → **Add New Database User** → a **dedicated** user (`carepulse-prod-app`), used by
+   nothing else:
+   - **Strong credentials:** generate the password, don't invent one: `openssl rand -hex 24`
+     (48 random characters). Hex is deliberate: it needs no percent-encoding inside the connection
+     string, unlike symbols such as `@`, `:` or `/`. Keep it in a password manager; it is never
+     committed, pasted into chat or reused from another account.
+   - **Least privilege:** *Built-in Role* → none; *Specific Privileges* → **`readWrite`** on the
+     `carepulse-prod` database only. Not `atlasAdmin`, not "Read and write to any database". The app
+     needs nothing beyond reading, writing and creating its own collections and indexes, which
+     `readWrite` includes.
+   - Your personal Atlas login is for the Atlas console only; the app never uses it.
+3. *Network Access* → add **`0.0.0.0/0`**. Render's free tier has no fixed outbound IP, so Atlas
+   can't be locked to one address. The connection is TLS-encrypted and still needs that username and
+   password, which is why step 2's credentials must be strong. (Render does publish outbound IP ranges
+   per region; you can allow-list those instead, at the cost of updating them if Render changes them.)
+4. *Connect* → *Drivers* → copy the `mongodb+srv://…` string, put your user, password and
+   database name into it: `mongodb+srv://carepulse-prod-app:<password>@<cluster>.mongodb.net/carepulse-prod?retryWrites=true&w=majority`.
+   **You need this for step 3.** It is a secret: it goes into Render's dashboard and nowhere else.
+5. Free M0 has no automated backups. Treat the data as disposable until you move to a paid tier
+   or export it yourself.
+
+## 2. Brevo (email)
+
+Reuse the account you already have: you need the **API key** and a **verified sender address**
+(Brevo only sends from verified senders). Registration and password-reset OTP emails depend on it.
+
+## 3. Render (backend + model service)
+
+1. Create a Render account (GitHub sign-in is fine). No card is needed for free services.
+2. Generate the shared model key once, on your machine, and keep it for this step:
+   ```
+   openssl rand -hex 32
+   ```
+3. *New* → **Blueprint** → connect `monish8805/carepulse` → Render reads `render.yaml` and
+   asks for the values marked `sync: false`.
+
+   > **This step is the first real validation of `render.yaml`.** The file passes Render's published
+   > JSON schema, but it has never been accepted by Render itself, so treat Blueprint creation as a
+   > test, not a guaranteed deployment. Things only Render can tell you: whether a free `image`
+   > service is accepted, whether the service names are free on `onrender.com`, whether the
+   > `PORT=8000` override on the model service is honoured, and whether the image pulls. If it
+   > complains, send me the exact message and I'll fix the file. If it can't be made to work, create the
+   > two services by hand with the same settings (*New → Web Service → Existing image*, the same
+   > image URLs, instance type **Free**, the health-check paths and variables from `render.yaml`).
+   > Nothing else in this runbook changes, because the deploy workflow only uses each service's
+   > deploy hook.
+
+
+   | Service | Variable | Value |
+   |---|---|---|
+   | backend | `MONGODB_URI` | the Atlas string from step 1 |
+   | backend | `ML_SERVICE_URL` | `https://carepulse-ml-service.onrender.com` (check it below) |
+   | backend | `ML_API_KEY` | the key from sub-step 2 |
+   | backend | `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` | from step 2 |
+   | ml-service | `ML_API_KEY` | **the same key** as the backend's |
+
+   `JWT_SECRET` is generated by Render; you don't set it.
+4. After the services are created, open each one and note its real public URL. If the name was
+   already taken on `onrender.com`, Render adds a suffix; then correct `ML_SERVICE_URL`
+   on the backend to match.
+5. On **each** service: *Settings* → **Deploy Hook** → copy the URL. Treat it like a password
+   (anyone with it can trigger deploys). You need both for step 5.
+6. The first start of the model service takes **1–2 minutes** (it loads PyTorch). Wait for both to
+   show *Live*, then open `https://<backend-url>/api/health`: it should say `"database":"connected"`.
+
+## 4. Cloudflare (the three portals)
+
+1. Create a free Cloudflare account.
+2. *Workers & Pages* → pick your **workers.dev subdomain** (the first time, it asks). Your portals
+   will be `carepulse-patient.<subdomain>.workers.dev`, `carepulse-hospital.…`, `carepulse-owner.…`.
+3. *My Profile* → *API Tokens* → **Create Token** → the **Edit Cloudflare Workers** template →
+   copy the token (shown once).
+4. Copy your **Account ID** (right-hand side of the *Workers & Pages* overview).
+
+## 5. GitHub (connect it all)
+
+*Settings* → *Environments* → **New environment** → `production`. (Optional: add yourself as a
+*required reviewer* so each deploy waits for your click.) Then, from the repo folder with `gh`
+logged in:
+
+```
+gh secret set RENDER_DEPLOY_HOOK_BACKEND --env production   # paste the backend hook URL
+gh secret set RENDER_DEPLOY_HOOK_ML      --env production   # paste the ml-service hook URL
+gh secret set CLOUDFLARE_API_TOKEN       --env production   # the token from step 4
+gh secret set CLOUDFLARE_ACCOUNT_ID      --env production   # the account id from step 4
+
+gh variable set BACKEND_ORIGIN --body "https://<backend-url>"      # no trailing path
+gh variable set ML_ORIGIN      --body "https://<ml-service-url>"
+```
+
+Last, once everything above exists, switch automatic deploys on:
+
+```
+gh variable set DEPLOY_ENABLED --body true
+```
+
+`DEPLOY_ENABLED` is **off by default** (a variable that doesn't exist is false). Until you set it,
+pushes only build and publish images, as they do today, and nothing can deploy automatically.
+It gates only the automatic deploys: *Run workflow* by hand always works, once the setup above is done.
+To pause automatic deploys later: `gh variable set DEPLOY_ENABLED --body false`.
+
+## 6. First deploy and checks
+
+1. *Actions* → **Deploy** → *Run workflow* on `main` (leave the SHA empty), or push a commit.
+2. The jobs run in order: Preflight → Render ×2 → Verify → Cloudflare ×3.
+   *Preflight* fails straight away, before anything is deployed, if a secret or variable is missing
+   or malformed. The portals deploy last, so a new UI is never live against an old backend.
+   *Verify* polls
+   `/api/health` and `/health` for up to 15 minutes (it covers a sleeping service waking) until each
+   reports **the exact commit just deployed**, so a green run means the new build is the one
+   answering, not an old instance. A first run on images built before the version check existed
+   can't pass this step: deploy a commit that includes it.
+3. Create the Platform Owner account **once**, from your machine, against the production
+   database (this is the only time the production URI touches your laptop):
+   ```
+   cd backend
+   MONGODB_URI='<atlas string>' OWNER_EMAIL='you@example.com' OWNER_PASSWORD='<strong password>' npm run seed:owner
+   ```
+4. Open `https://carepulse-owner.<subdomain>.workers.dev`, log in, reload the page (the session
+   should survive: that is the cookie working), create a hospital.
+5. Register a patient on the patient portal and confirm the OTP email arrives.
+
+---
+
+## Operating notes
+
+- **Cold starts.** Free Render services sleep after 15 minutes without traffic. The first request
+  after that takes up to about a minute; the model service takes 1–2 minutes. While it wakes,
+  the backend's 5-second model timeout means a reading is saved but shows `UNKNOWN` (never
+  `LOW`). The next reading is scored normally.
+- **Don't add a keep-alive pinger.** Render gives 750 free instance-hours per month for the whole
+  workspace, and a service that never sleeps uses ~730. Two always-on services would run out
+  mid-month and be suspended. Sleeping when idle is what keeps both inside the allowance.
+- **Which build is live?** `curl https://<backend-url>/api/health` and `curl https://<ml-service-url>/health`
+  both include `"commit"`: the full SHA the image was built from. A commit SHA is not a secret
+  (the repository is public) and the endpoints show nothing else new.
+- **Roll back.** *Actions* → **Deploy** → *Run workflow* with an older commit SHA. Its images are
+  still in GHCR and its portals are rebuilt from that commit. Only commits that include the
+  version check can pass the smoke test; for an older one the rollback itself works but the
+  smoke test fails because that image doesn't report a `commit`.
+- **502 from the portals** means the Worker could not reach the backend (asleep, restarting or
+  down); a 500 means the backend itself answered with an error.
+- **Rotate the model key.** Generate a new one, set it on **both** Render services (they restart),
+  nothing else changes. Until both have restarted, scoring shows `UNKNOWN`.
+- **Rotate a deploy hook / Cloudflare token.** Regenerate it at the provider, then
+  `gh secret set …` again.
+- **The model-service port is public.** Anyone can reach `carepulse-ml-service.onrender.com`,
+  but every route except `/health` needs the key, and the API docs are switched off.
+- **The images are public** (the repository is public, so GHCR inherited that). They hold no
+  secrets: every secret comes from Render's environment at run time.

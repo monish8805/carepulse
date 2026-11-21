@@ -2,7 +2,8 @@ name: Publish images
 
 # Pull requests only prove the images still build. Images are pushed to GHCR from
 # main, and only after the CI workflow has passed for that commit, so a red commit
-# never becomes an image. Nothing here deploys anything.
+# never becomes an image. After a push's images are published, the deploy job below hands
+# that commit to deploy.yml (only once the repository variable DEPLOY_ENABLED is "true").
 on:
   pull_request:
   workflow_run:
@@ -100,8 +101,24 @@ jobs:
           build-args: |
             APP=${{ matrix.app }}
             VITE_API_URL=${{ env.VITE_API_URL }}
+            GIT_SHA=${{ env.SHA }}
           push: ${{ steps.target.outputs.push == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,scope=${{ matrix.name }},mode=max
+
+  deploy:
+    name: Deploy
+    needs: images
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      sha: ${{ github.event.workflow_run.head_sha }}
+    secrets: inherit

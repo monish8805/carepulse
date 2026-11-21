@@ -1,0 +1,53 @@
+# Render Blueprint: the backend and the model service, both run from the images that
+# publish-images.yml pushes to GHCR (the packages are public, so no registry credential
+# is needed). The frontends are not here: they are Cloudflare Workers (see DEPLOY.md).
+#
+# Image-backed services never redeploy on their own. .github/workflows/deploy.yml
+# triggers each one through its deploy hook with an exact commit-SHA tag.
+#
+# Every value with `sync: false` is asked for once, in the Render dashboard, when the
+# Blueprint is created. None of them belong in this file.
+services:
+  - type: web
+    name: carepulse-backend
+    runtime: image
+    image:
+      url: ghcr.io/monish8805/carepulse-backend:latest
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      # NODE_ENV=production is baked into the image; PORT is set by Render.
+      - key: MONGODB_URI
+        sync: false
+      # Render creates this once and keeps it. Changing it signs every user out.
+      - key: JWT_SECRET
+        generateValue: true
+      # Public URL of carepulse-ml-service, e.g. https://carepulse-ml-service.onrender.com
+      - key: ML_SERVICE_URL
+        sync: false
+      # Must be the same value as on carepulse-ml-service.
+      - key: ML_API_KEY
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: BREVO_SENDER_NAME
+        value: CarePulse
+
+  - type: web
+    name: carepulse-ml-service
+    runtime: image
+    image:
+      url: ghcr.io/monish8805/carepulse-ml-service:latest
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      # The image's server listens on 8000.
+      - key: PORT
+        value: "8000"
+      # Must be the same value as on carepulse-backend. The service refuses to start without it.
+      - key: ML_API_KEY
+        sync: false

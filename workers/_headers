@@ -1,0 +1,14 @@
+# Response headers for the static files each Worker serves. deploy.yml copies this file
+# into every app's dist/client before `wrangler deploy`. It applies to assets only: the
+# Worker's /api/* responses come straight from the backend and are not touched.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: same-origin
+
+# Vite puts a content hash in every file name under /assets, so a changed file always has
+# a new URL and the old one can be cached forever. _shell.html and everything else keep
+# Cloudflare's default (revalidate on every load) so a deploy is picked up at once.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

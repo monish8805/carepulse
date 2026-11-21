@@ -5,6 +5,10 @@ export const MONGODB_URI = process.env.MONGODB_URI || "";
 export const NODE_ENV = process.env.NODE_ENV || "development";
 export const IS_PRODUCTION = NODE_ENV === "production";
 
+// The commit this image was built from (a build arg in the Dockerfile; public information,
+// not a secret). Shown by /api/health so a deploy can prove which build is running.
+export const GIT_SHA = process.env.GIT_SHA || "unknown";
+
 export const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "http://localhost:3001")
   .split(",")
   .map((origin) => origin.trim());

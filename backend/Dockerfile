@@ -19,6 +19,9 @@ COPY --from=build /app/dist ./dist
 COPY package.json ./
 # The official image ships a non-root "node" user.
 USER node
+# Which commit this image is. Public, not a secret; /api/health reports it.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
 EXPOSE 5001
 # No secrets here: MONGODB_URI, JWT_SECRET, BREVO_* etc. are supplied at run time.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \

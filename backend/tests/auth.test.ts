@@ -54,6 +54,7 @@ describe("Health", () => {
   it("responds", async () => {
     const res = await request(app).get("/api/health");
     expect(res.status).toBe(200);
+    expect(typeof res.body.commit).toBe("string");
   });
 });
 

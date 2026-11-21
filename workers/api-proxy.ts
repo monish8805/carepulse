@@ -14,7 +14,14 @@ export default {
       const target = new URL(url.pathname + url.search, env.BACKEND_ORIGIN);
       // Pass the Request itself: spreading it ({ ...request }) silently drops its method, headers and body.
       // "manual" hands any redirect to the browser instead of following it here.
-      return fetch(new Request(target, request), { redirect: "manual" });
+      try {
+        return await fetch(new Request(target, request), { redirect: "manual" });
+      } catch {
+        // The backend did not answer at all (down, restarting, unreachable). 502 tells the
+        // caller the fault is the server behind the proxy, not the app's own 500. Nothing
+        // from the error is echoed, and the body keeps the {message} shape the apps read.
+        return Response.json({ message: "The server is unavailable. Try again shortly." }, { status: 502 });
+      }
     }
 
     // /assets/* never gets here (see run_worker_first), so a missing asset is a real 404.

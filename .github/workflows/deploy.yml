@@ -1,0 +1,202 @@
+name: Deploy
+
+# Deploys one commit to production: backend + model service on Render, the three
+# portals on Cloudflare Workers.
+#   - Automatic: publish-images.yml calls this after a green push to main has published
+#     its images, but only when the repository variable DEPLOY_ENABLED is "true"
+#     (it is not set by default).
+#   - Manual: run it from the Actions tab with a full commit SHA to redeploy or roll back.
+#     That commit's images must already exist in GHCR.
+#
+# Order matters: preflight -> render (trigger) -> verify (wait until the new backend and
+# model service are really the ones answering) -> workers. The portals go last so a new UI
+# is never live against an old backend.
+on:
+  workflow_call:
+    inputs:
+      sha:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Full 40-character commit SHA to deploy. Leave empty for the latest commit on main."
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+# One deploy at a time. A queued run is replaced by a newer one, never cancelled midway.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  SHA: ${{ inputs.sha || github.sha }}
+  # Pinned: Worker config behaviour changes between wrangler releases. This is the
+  # version the Worker setup was tested with.
+  WRANGLER_VERSION: 4.165.0
+
+jobs:
+  # Everything that could be missing or wrong is checked before anything is touched, so a
+  # bad setup fails here and never leaves Render deployed and Cloudflare not.
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      RENDER_DEPLOY_HOOK_BACKEND: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
+      RENDER_DEPLOY_HOOK_ML: ${{ secrets.RENDER_DEPLOY_HOOK_ML }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      BACKEND_ORIGIN: ${{ vars.BACKEND_ORIGIN }}
+      ML_ORIGIN: ${{ vars.ML_ORIGIN }}
+    steps:
+      - run: |
+          fail() { echo "::error::$1"; exit 1; }
+          [ "$GITHUB_REF" = "refs/heads/main" ] || fail "Deploys run from main only (this run is on ${GITHUB_REF})."
+          printf '%s' "$SHA" | grep -Eq '^[0-9a-f]{40}$' || fail "The SHA must be a full 40-character commit SHA, got '${SHA}'."
+          for name in RENDER_DEPLOY_HOOK_BACKEND RENDER_DEPLOY_HOOK_ML CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            [ -n "${!name}" ] || fail "Secret ${name} is not set in the production environment."
+          done
+          # Bare origins only: the Worker joins /api/... onto BACKEND_ORIGIN, so a path would break it.
+          for name in BACKEND_ORIGIN ML_ORIGIN; do
+            printf '%s' "${!name}" | grep -Eq '^https://[^/]+$' || fail "Repository variable ${name} must look like https://host, with no path or trailing slash."
+          done
+          echo "Deploying ${SHA}"
+
+  render:
+    name: Render — ${{ matrix.service }}
+    needs: preflight
+    runs-on: ubuntu-latest
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: backend
+            hook_secret: RENDER_DEPLOY_HOOK_BACKEND
+          - service: ml-service
+            hook_secret: RENDER_DEPLOY_HOOK_ML
+    steps:
+      # Same name as render.yaml's image.url, with the commit as the tag.
+      - id: image
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "ref=ghcr.io/${owner}/carepulse-${{ matrix.service }}:${SHA}" >> "$GITHUB_OUTPUT"
+
+      # Fail here, with a clear message, instead of telling Render to pull a missing tag.
+      - name: Check the image exists
+        run: docker buildx imagetools inspect "${{ steps.image.outputs.ref }}" > /dev/null
+
+      # The hook URL contains its own key, so it is a secret. imgURL pins the exact
+      # build; Render only accepts it if everything but the tag matches the service's image.
+      - name: Trigger the Render deploy
+        env:
+          HOOK: ${{ secrets[matrix.hook_secret] }}
+          IMAGE: ${{ steps.image.outputs.ref }}
+        run: |
+          encoded="$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$IMAGE")"
+          curl -fsS --max-time 30 "${HOOK}&imgURL=${encoded}" > /dev/null
+          echo "Render accepted the deploy of ${IMAGE}"
+
+  verify:
+    name: Verify the new build is live
+    needs: render
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      BACKEND_ORIGIN: ${{ vars.BACKEND_ORIGIN }}
+      ML_ORIGIN: ${{ vars.ML_ORIGIN }}
+    steps:
+      # Render swaps an image service in only after the new build is healthy, and the old
+      # build keeps answering until then. So "it responds" proves nothing: each probe waits
+      # (up to 15 minutes, to cover a sleeping free service waking) until /health reports
+      # the commit that was just deployed. Both images are built with it (GIT_SHA).
+      # This works for commits that include this check; an older image has no `commit`
+      # field, so rolling back past it fails here even though the rollback itself worked.
+      - name: Backend is running ${{ env.SHA }}
+        run: |
+          for i in $(seq 1 60); do
+            body="$(curl -fsS --max-time 30 "${BACKEND_ORIGIN}/api/health" 2>/dev/null || true)"
+            got="$(printf '%s' "$body" | jq -r '.commit // empty' 2>/dev/null || true)"
+            if [ "$got" = "$SHA" ]; then
+              echo "$body"
+              printf '%s' "$body" | jq -e '.database == "connected"' > /dev/null
+              exit 0
+            fi
+            echo "[$i/60] backend reports '${got:-nothing}', waiting for ${SHA}"
+            sleep 15
+          done
+          echo "The backend never reported commit ${SHA}."
+          exit 1
+
+      - name: Model service is running ${{ env.SHA }}
+        run: |
+          for i in $(seq 1 60); do
+            body="$(curl -fsS --max-time 30 "${ML_ORIGIN}/health" 2>/dev/null || true)"
+            got="$(printf '%s' "$body" | jq -r '.commit // empty' 2>/dev/null || true)"
+            if [ "$got" = "$SHA" ]; then
+              echo "$body"
+              printf '%s' "$body" | jq -e '.model_loaded == true' > /dev/null
+              exit 0
+            fi
+            echo "[$i/60] model service reports '${got:-nothing}', waiting for ${SHA}"
+            sleep 15
+          done
+          echo "The model service never reported commit ${SHA}."
+          exit 1
+
+      - name: Model service rejects a request without the key
+        run: |
+          code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -X POST -H 'Content-Type: application/json' -d '{}' "${ML_ORIGIN}/predict")"
+          echo "POST /predict without a key -> ${code}"
+          [ "$code" = "401" ]
+
+      - name: Model service does not publish its API docs
+        run: |
+          code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "${ML_ORIGIN}/openapi.json")"
+          echo "GET /openapi.json -> ${code}"
+          [ "$code" = "404" ]
+
+  workers:
+    name: Cloudflare — ${{ matrix.app }}
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [patient-frontend, hospital-frontend, owner-frontend]
+    env:
+      BACKEND_ORIGIN: ${{ vars.BACKEND_ORIGIN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --workspace ${{ matrix.app }} --include-workspace-root
+
+      # An EMPTY VITE_API_URL makes the app call its own origin, which is where the Worker
+      # proxies /api/* to the backend. Leaving it unset would bake in http://localhost:5001.
+      - name: Build
+        run: npm run build --workspace ${{ matrix.app }}
+        env:
+          VITE_API_URL: ""
+
+      - name: The build must not point at localhost
+        run: "! grep -rl 'localhost:5001' ${{ matrix.app }}/dist/client"
+
+      - run: cp workers/_headers ${{ matrix.app }}/dist/client/_headers
+
+      # wrangler deploy is synchronous: when it succeeds, the new Worker is live.
+      - name: Deploy the Worker
+        working-directory: ${{ matrix.app }}
+        run: npx --yes "wrangler@${WRANGLER_VERSION}" deploy --var "BACKEND_ORIGIN:${BACKEND_ORIGIN}"

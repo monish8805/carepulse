@@ -19,6 +19,11 @@ def test_health_needs_no_key():
     assert client.get("/health").status_code == 200
 
 
+def test_health_reports_the_commit(monkeypatch):
+    monkeypatch.setenv("GIT_SHA", "abc123")
+    assert client.get("/health").json()["commit"] == "abc123"
+
+
 @pytest.mark.parametrize("method,path", PROTECTED)
 def test_missing_key_is_401(method, path):
     response = call(method, path)
